@@ -55,7 +55,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   // Leaderboard data from server
   const [reigningChampion, setReigningChampion] = useState<BidItem | null>(null);
@@ -85,7 +85,7 @@ export default function HomePage() {
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [metaStatus, setMetaStatus] = useState('');
 
-  // Sync initial theme
+  // Sync initial theme (light by default)
   useEffect(() => {
     try {
       const current = document.documentElement.getAttribute('data-theme') as 'dark' | 'light';
@@ -93,7 +93,7 @@ export default function HomePage() {
         setTheme(current);
       } else {
         const saved = localStorage.getItem('lowestbid_theme') as 'dark' | 'light';
-        const initial = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        const initial = saved || 'light';
         setTheme(initial);
         document.documentElement.setAttribute('data-theme', initial);
       }
