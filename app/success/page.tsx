@@ -25,9 +25,20 @@ function SuccessContent() {
       console.log('Confetti effect executed');
     }
 
-    // Fetch current leaderboard status
-    const fetchLeaderboard = async () => {
+    // Fetch bid status & auto-verify with Dodo Payments
+    const fetchStatus = async () => {
       try {
+        if (bidId) {
+          const statusRes = await fetch(`/api/bid/status?bid_id=${encodeURIComponent(bidId)}`);
+          const statusJson = await statusRes.json();
+          if (statusJson.success && statusJson.bid) {
+            setBidDetails(statusJson.bid);
+            setIsChampion(statusJson.isChampion);
+            return;
+          }
+        }
+
+        // Fallback: Check general leaderboard
         const res = await fetch('/api/bids');
         const json = await res.json();
         if (json.success && json.data) {
@@ -46,7 +57,7 @@ function SuccessContent() {
       }
     };
 
-    fetchLeaderboard();
+    fetchStatus();
   }, [bidId]);
 
   const tweetText = encodeURIComponent(

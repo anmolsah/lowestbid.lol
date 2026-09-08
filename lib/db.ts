@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 export interface Bid {
   id: string;
@@ -25,39 +26,111 @@ export interface LeaderboardStats {
   uniqueBidsCount: number;
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+// Global in-memory cache for serverless execution context
+const globalForBids = globalThis as unknown as {
+  bidsCache?: Bid[];
+};
+
+// On Vercel serverless / AWS Lambda, process.cwd() is read-only.
+// Use os.tmpdir() on Vercel, and process.cwd()/data in local development.
+const isVercel = Boolean(process.env.VERCEL);
+const DATA_DIR = isVercel
+  ? path.join(os.tmpdir(), 'lowestbid-data')
+  : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'bids.json');
+const SEED_FILE = path.join(process.cwd(), 'data', 'bids.json');
+
+// Optional Upstash / Vercel KV persistence if configured
+const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+async function syncToKV(bids: Bid[]) {
+  if (!kvUrl || !kvToken) return;
+  try {
+    await fetch(`${kvUrl}/set/lowestbid_bids`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${kvToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(JSON.stringify(bids)),
+    });
+  } catch (err) {
+    console.error('Failed to sync bids to KV:', err);
+  }
+}
 
 // Ensure data directory and initial database file exist
 function ensureDataFile() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
 
-  if (!fs.existsSync(DB_FILE)) {
-    // Start clean with an empty array of bids
-    fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2), 'utf8');
+    if (!fs.existsSync(DB_FILE)) {
+      // Seed with initial bids from bundled data directory if available
+      let initialData = '[]';
+      if (fs.existsSync(SEED_FILE)) {
+        try {
+          initialData = fs.readFileSync(SEED_FILE, 'utf8');
+        } catch {}
+      }
+      fs.writeFileSync(DB_FILE, initialData, 'utf8');
+    }
+  } catch (err) {
+    console.warn('Filesystem access limited, using in-memory store:', err);
   }
 }
 
-// Read raw bids from JSON
+// Read raw bids from JSON with in-memory fallback
 export function getAllBids(): Bid[] {
+  if (globalForBids.bidsCache && globalForBids.bidsCache.length > 0) {
+    return globalForBids.bidsCache;
+  }
+
   ensureDataFile();
   try {
-    const raw = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(raw) as Bid[];
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf8');
+      const parsed = JSON.parse(raw) as Bid[];
+      globalForBids.bidsCache = parsed;
+      return parsed;
+    }
+    if (fs.existsSync(SEED_FILE)) {
+      const raw = fs.readFileSync(SEED_FILE, 'utf8');
+      const parsed = JSON.parse(raw) as Bid[];
+      globalForBids.bidsCache = parsed;
+      return parsed;
+    }
   } catch (err) {
     console.error('Error reading bids DB:', err);
-    return [];
   }
+
+  return globalForBids.bidsCache || [];
 }
 
-// Write bids to JSON with atomic replace
+// Write bids to JSON with atomic replace and memory cache
 export function saveAllBids(bids: Bid[]): void {
+  // Always update in-memory cache first so operations succeed immediately
+  globalForBids.bidsCache = bids;
+
   ensureDataFile();
-  const tempFile = `${DB_FILE}.${Date.now()}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(bids, null, 2), 'utf8');
-  fs.renameSync(tempFile, DB_FILE);
+  try {
+    const tempFile = `${DB_FILE}.${Date.now()}.${Math.random().toString(36).substring(7)}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(bids, null, 2), 'utf8');
+    fs.renameSync(tempFile, DB_FILE);
+  } catch (err) {
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(bids, null, 2), 'utf8');
+    } catch (writeErr) {
+      console.warn('Could not persist to disk (serverless ephemeral environment):', writeErr);
+    }
+  }
+
+  // If KV is configured, sync in background
+  if (kvUrl && kvToken) {
+    syncToKV(bids).catch(() => {});
+  }
 }
 
 // Add or update a bid

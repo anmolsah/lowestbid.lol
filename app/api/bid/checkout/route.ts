@@ -57,15 +57,18 @@ export async function POST(req: Request) {
     // Generate unique Bid ID
     const bidId = `bid_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-    // Create Dodo Payments Checkout session
-    const checkout = await createCheckout({
-      bidId,
-      amount: roundedAmount,
-      title: cleanTitle,
-      url: formattedUrl,
-      message: cleanMessage,
-      twitter: cleanTwitter,
-    });
+    // Create Dodo Payments Checkout session with dynamic request host resolution
+    const checkout = await createCheckout(
+      {
+        bidId,
+        amount: roundedAmount,
+        title: cleanTitle,
+        url: formattedUrl,
+        message: cleanMessage,
+        twitter: cleanTwitter,
+      },
+      req
+    );
 
     // Save pending bid in database
     const newBid: Bid = {
@@ -90,10 +93,10 @@ export async function POST(req: Request) {
       sessionId: checkout.sessionId,
       isSandboxSimulation: checkout.isSandboxSimulation,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating bid checkout:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to initiate checkout' },
+      { success: false, error: error?.message || 'Failed to initiate checkout' },
       { status: 500 }
     );
   }
