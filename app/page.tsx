@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   TrendingDown,
   ArrowUpRight,
-  HelpCircle,
   Clock,
   Swords,
   PlusCircle,
@@ -21,6 +20,10 @@ import {
   CheckCircle2,
   Loader2,
   MousePointerClick,
+  Sun,
+  Moon,
+  ArrowRight,
+  HelpCircle,
 } from 'lucide-react';
 
 interface BidItem {
@@ -47,11 +50,12 @@ interface LeaderboardStats {
 }
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'unique' | 'whales' | 'feed'>('unique');
+  const [activeTab, setActiveTab] = useState<'unique' | 'clashed' | 'whales' | 'feed'>('unique');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   // Leaderboard data from server
   const [reigningChampion, setReigningChampion] = useState<BidItem | null>(null);
@@ -67,9 +71,12 @@ export default function HomePage() {
     highestBid: null,
     uniqueBidsCount: 0,
   });
-  const [isDodoConfigured, setIsDodoConfigured] = useState(false);
 
-  // Form State
+  // Hero Quick Bid Bar state
+  const [quickUrl, setQuickUrl] = useState('');
+  const [quickAmount, setQuickAmount] = useState('1.07');
+
+  // Modal Form State
   const [formAmount, setFormAmount] = useState('1.07');
   const [formTitle, setFormTitle] = useState('');
   const [formUrl, setFormUrl] = useState('');
@@ -78,7 +85,33 @@ export default function HomePage() {
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [metaStatus, setMetaStatus] = useState('');
 
-  // Fetch data
+  // Sync initial theme
+  useEffect(() => {
+    try {
+      const current = document.documentElement.getAttribute('data-theme') as 'dark' | 'light';
+      if (current) {
+        setTheme(current);
+      } else {
+        const saved = localStorage.getItem('lowestbid_theme') as 'dark' | 'light';
+        const initial = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        setTheme(initial);
+        document.documentElement.setAttribute('data-theme', initial);
+      }
+    } catch {
+      // fallback
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    try {
+      localStorage.setItem('lowestbid_theme', nextTheme);
+    } catch {}
+  };
+
+  // Fetch leaderboard data
   const fetchData = async () => {
     try {
       const res = await fetch('/api/bids');
@@ -90,7 +123,6 @@ export default function HomePage() {
         setHighRollers(json.data.highRollers || []);
         setRecentFeed(json.data.recentFeed || []);
         setStats(json.data.stats || {});
-        setIsDodoConfigured(json.isDodoConfigured || false);
       }
     } catch (err) {
       console.error('Error fetching leaderboard data:', err);
@@ -101,14 +133,9 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 6000); // Polling every 6s for live feel
+    const interval = setInterval(fetchData, 6000);
     return () => clearInterval(interval);
   }, []);
-
-  // Quick amount chip selector
-  const handleQuickChip = (amount: string) => {
-    setFormAmount(amount);
-  };
 
   // Track clicks on website links
   const handleTrackClick = (bidId: string) => {
@@ -135,7 +162,7 @@ export default function HomePage() {
     }
   };
 
-  // Fetch website metadata (description & title fallback)
+  // Auto-fetch website metadata
   const handleFetchMeta = async (customUrl?: string) => {
     const raw = (customUrl !== undefined ? customUrl : formUrl).trim();
     if (!raw) return;
@@ -152,7 +179,7 @@ export default function HomePage() {
     }
 
     setFetchingMeta(true);
-    setMetaStatus('Fetching website info...');
+    setMetaStatus('Auto-filling site info...');
 
     try {
       const res = await fetch('/api/fetch-metadata', {
@@ -163,21 +190,13 @@ export default function HomePage() {
 
       const data = await res.json();
       if (data.success) {
-        let filledCount = 0;
         if (data.description) {
           setFormMessage(data.description);
-          filledCount++;
         }
         if (data.title && (!formTitle || formTitle.trim().length === 0)) {
           setFormTitle(data.title);
-          filledCount++;
         }
-
-        if (filledCount > 0) {
-          setMetaStatus('Description auto-filled from site!');
-        } else {
-          setMetaStatus('No description meta tag found');
-        }
+        setMetaStatus('Details fetched!');
       } else {
         setMetaStatus('');
       }
@@ -186,11 +205,32 @@ export default function HomePage() {
       setMetaStatus('');
     } finally {
       setFetchingMeta(false);
-      setTimeout(() => setMetaStatus(''), 4500);
+      setTimeout(() => setMetaStatus(''), 4000);
     }
   };
 
-  // Submit Bid & Create Dodo Payments Checkout
+  // Open modal pre-filled with quick bid values
+  const handleOpenModal = (presetAmount?: string, presetUrl?: string) => {
+    if (presetAmount) {
+      setFormAmount(presetAmount);
+      setQuickAmount(presetAmount);
+    }
+    if (presetUrl) {
+      setFormUrl(presetUrl);
+      setQuickUrl(presetUrl);
+      handleFetchMeta(presetUrl);
+    }
+    setErrorMessage('');
+    setIsModalOpen(true);
+  };
+
+  // Hero Quick-Bid Bar submit
+  const handleQuickBidSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleOpenModal(quickAmount, quickUrl);
+  };
+
+  // Submit Bid & Create Checkout
   const handleBidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -233,7 +273,6 @@ export default function HomePage() {
         throw new Error(data.error || 'Failed to initialize checkout');
       }
 
-      // Redirect directly to Dodo Payments checkout or Sandbox test checkout
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       }
@@ -243,7 +282,7 @@ export default function HomePage() {
     }
   };
 
-  // Format relative time helper
+  // Time format helper
   const formatTimeAgo = (dateStr: string) => {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (diff < 60) return `${diff}s ago`;
@@ -252,346 +291,388 @@ export default function HomePage() {
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
+  const quickChips = ['1.00', '1.07', '1.43', '1.99', '2.50', '5.00'];
+
   return (
     <div className="container">
       {/* Top Header */}
-      <header className="header-nav">
-        <Link href="/" className="brand-logo">
-          <div className="brand-icon-box">
-            <TrendingDown size={22} />
+      <header className="nav-header">
+        <Link href="/" className="nav-brand">
+          <div className="nav-logo-icon">
+            <TrendingDown size={20} />
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="brand-title">lowestbid.lol</span>
-              <span className="brand-badge">THE ANTI-OUTBID</span>
-            </div>
-          </div>
+          <span className="nav-brand-title">lowestbid.lol</span>
         </Link>
 
-        <div className="header-right">
-          <button onClick={() => setIsModalOpen(true)} className="btn-primary" style={{ padding: '9px 18px', fontSize: '0.88rem' }}>
-            <PlusCircle size={16} /> Place a Bid
+        <div className="nav-right">
+          <button
+            onClick={toggleTheme}
+            className="theme-toggle-btn"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+
+          <a
+            href="#how-it-works"
+            className="footer-link"
+            style={{ fontSize: '0.85rem', fontWeight: 600, marginRight: '4px' }}
+          >
+            Rules
+          </a>
+
+          <button onClick={() => handleOpenModal()} className="btn-nav-primary">
+            <PlusCircle size={15} /> Place Bid
           </button>
         </div>
       </header>
 
       {/* Hero Section */}
       <section className="hero-section">
-        <div className="hero-subtitle-badge">
-          <Sparkles size={14} style={{ color: 'var(--accent-gold)' }} />
-          Inspired by outbid.lol &bull; The lowest unique bid claims the #1 crown
-        </div>
-
         <h1 className="hero-title">
           The Pay-to-Rank Billboard where <br />
-          <span className="text-gradient-gold">Lowest Unique Bid</span> Wins.
+          <span className="hero-title-highlight">Lowest Unique Bid</span> Wins.
         </h1>
 
         <p className="hero-description">
-          Tired of bidding wars where only billionaires win? Bid anywhere from <strong>$1.00</strong> to <strong>$9,999,999</strong>. 
-          If your bid is the lowest number that nobody else chose, you seize the #1 spotlight on the internet.
+          Tired of bidding wars where only billionaires win? Bid anywhere from <strong>$1.00+</strong>. 
+          If nobody else bids your exact price, the lowest unique bid claims the #1 spotlight on the internet.
         </p>
 
-        {/* Platform Stats */}
-        <div className="stats-bar">
-          <div className="stat-box">
-            <div className="stat-label">
-              <DollarSign size={14} /> Total Volume Paid
-            </div>
-            <div className="stat-value text-gradient-emerald">
-              ${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
-            </div>
-          </div>
+        {/* Quick Bid Hero Bar (Outbid.lol Style) */}
+        <div className="quick-bid-card">
+          <form onSubmit={handleQuickBidSubmit} className="quick-bid-form">
+            <input
+              type="text"
+              className="quick-bid-url-input"
+              placeholder="Enter your website URL or @handle..."
+              value={quickUrl}
+              onChange={(e) => setQuickUrl(e.target.value)}
+              required
+            />
 
-          <div className="stat-box">
-            <div className="stat-label">
-              <Crown size={14} style={{ color: 'var(--accent-gold)' }} /> Current #1 Low Bid
-            </div>
-            <div className="stat-value text-gradient-gold">
-              {stats.currentLowestUniqueBid ? `$${stats.currentLowestUniqueBid.toFixed(2)}` : 'None yet'}
-            </div>
-          </div>
-
-          <div className="stat-box">
-            <div className="stat-label">
-              <Flame size={14} /> Total Bids Submitted
-            </div>
-            <div className="stat-value">{stats.totalBids}</div>
-          </div>
-
-          <div className="stat-box">
-            <div className="stat-label">
-              <Swords size={14} style={{ color: 'var(--accent-rose)' }} /> Clashed / Duplicate Bids
-            </div>
-            <div className="stat-value" style={{ color: 'var(--accent-rose)' }}>{stats.clashedCount}</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Reigning Champion Hero Crown Showcase */}
-      <section>
-        {reigningChampion ? (
-          <div className="champion-card">
-            <div className="champion-inner">
-              <div>
-                <div className="champion-crown-tag">
-                  <Crown size={15} /> Reigning #1 Champion Spotlight
-                </div>
-
-                <div className="champion-title-row">
-                  <h2 className="champion-title">{reigningChampion.title}</h2>
-                  <a
-                    href={reigningChampion.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="champion-url-badge"
-                    onClick={() => handleTrackClick(reigningChampion.id)}
-                  >
-                    Visit Link <ExternalLink size={13} />
-                  </a>
-                  <span className="champion-clicks-badge" title="Total website clicks from visitors">
-                    <MousePointerClick size={12} /> {(reigningChampion.clicks || 0).toLocaleString()} {(reigningChampion.clicks || 0) === 1 ? 'click' : 'clicks'}
-                  </span>
-                  {reigningChampion.twitter && (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      {reigningChampion.twitter}
-                    </span>
-                  )}
-                </div>
-
-                <p className="champion-message">
-                  &ldquo;{reigningChampion.message || 'Holding the lowest unique bid on lowestbid.lol!'}&rdquo;
-                </p>
-
-                <div className="champion-meta-row">
-                  <span>Joined: {formatTimeAgo(reigningChampion.createdAt)}</span>
-                  <span>&bull;</span>
-                  <span style={{ color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle2 size={14} /> Verified on Dodo Payments
-                  </span>
-                </div>
+            <div className="quick-bid-controls-row">
+              <div className="quick-bid-amount-wrap">
+                <span className="quick-bid-currency">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.00"
+                  max="9999999"
+                  className="quick-bid-amount-input"
+                  value={quickAmount}
+                  onChange={(e) => setQuickAmount(e.target.value)}
+                  required
+                />
               </div>
 
-              <div className="champion-bid-badge">
-                <span className="champion-bid-label">Winning Unique Bid</span>
-                <span className="champion-bid-amount">${reigningChampion.amount.toFixed(2)}</span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Target to under-bid
+              <button type="submit" className="quick-bid-submit-btn">
+                Claim Spot <ArrowRight size={15} />
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Quick Amount Chips */}
+        <div className="quick-chips-row">
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Quick bid:</span>
+          {quickChips.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              className={`quick-chip ${quickAmount === chip ? 'active' : ''}`}
+              onClick={() => {
+                setQuickAmount(chip);
+                handleOpenModal(chip, quickUrl);
+              }}
+            >
+              ${chip}
+            </button>
+          ))}
+        </div>
+        <p className="quick-chip-hint">
+          💡 Tip: Pick odd decimals like $1.07 or $1.43 to dodge duplicate clashes!
+        </p>
+      </section>
+
+      {/* Stats Strip */}
+      <div className="stats-strip">
+        <div className="stat-item">
+          <div className="stat-label">
+            <Crown size={12} style={{ color: 'var(--accent-gold)' }} /> #1 Low Bid
+          </div>
+          <div className="stat-val stat-val-gold">
+            {stats.currentLowestUniqueBid ? `$${stats.currentLowestUniqueBid.toFixed(2)}` : 'None'}
+          </div>
+        </div>
+
+        <div className="stat-item">
+          <div className="stat-label">
+            <DollarSign size={12} /> Total Volume
+          </div>
+          <div className="stat-val">
+            ${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
+          </div>
+        </div>
+
+        <div className="stat-item">
+          <div className="stat-label">
+            <Flame size={12} /> Total Bids
+          </div>
+          <div className="stat-val">{stats.totalBids}</div>
+        </div>
+
+        <div className="stat-item">
+          <div className="stat-label">
+            <Swords size={12} style={{ color: 'var(--accent-coral)' }} /> Clashes
+          </div>
+          <div className="stat-val stat-val-coral">{stats.clashedCount}</div>
+        </div>
+      </div>
+
+      {/* #1 Reigning Champion Spotlight Card */}
+      {reigningChampion ? (
+        <section className="champion-spotlight">
+          <div className="champion-glow" />
+          <div className="champion-top-tag">
+            <Crown size={14} /> Reigning #1 Champion Spotlight
+          </div>
+
+          <div className="champion-layout">
+            <div className="champion-details">
+              <div className="champion-title-row">
+                <h2 className="champion-title">{reigningChampion.title}</h2>
+                <a
+                  href={reigningChampion.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="champion-link"
+                  onClick={() => handleTrackClick(reigningChampion.id)}
+                >
+                  {reigningChampion.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                  <ExternalLink size={12} />
+                </a>
+                <span className="champion-clicks" title="Total clicks from visitors">
+                  <MousePointerClick size={12} /> {(reigningChampion.clicks || 0).toLocaleString()} clicks
+                </span>
+                {reigningChampion.twitter && (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {reigningChampion.twitter}
+                  </span>
+                )}
+              </div>
+
+              <p className="champion-pitch">
+                &ldquo;{reigningChampion.message || 'Holding the lowest unique bid on lowestbid.lol!'}&rdquo;
+              </p>
+
+              <div className="champion-meta">
+                <span>Joined {formatTimeAgo(reigningChampion.createdAt)}</span>
+                <span>&bull;</span>
+                <span style={{ color: 'var(--accent-emerald)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={13} /> Verified on Dodo Payments
                 </span>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="champion-card">
-            <div className="champion-inner" style={{ textAlign: 'center', display: 'block', padding: '48px 20px' }}>
-              <Crown size={48} style={{ color: 'var(--accent-gold)', margin: '0 auto 16px' }} />
-              <h2 style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '8px' }}>The Throne is Open!</h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                Be the first to place a bid of $1.00 or higher and claim the #1 spotlight immediately.
-              </p>
-              <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-                Claim Crown for $1.00
+
+            <div className="champion-bid-col">
+              <div className="champion-bid-sub">Winning Unique Bid</div>
+              <div className="champion-bid-price">${reigningChampion.amount.toFixed(2)}</div>
+              <button
+                onClick={() => handleOpenModal((Math.max(1.00, reigningChampion.amount - 0.01)).toFixed(2))}
+                className="btn-outbid"
+              >
+                Under-bid Now <ArrowUpRight size={13} />
               </button>
             </div>
           </div>
-        )}
-      </section>
+        </section>
+      ) : (
+        <section className="throne-open-card">
+          <Crown size={40} className="throne-open-icon" />
+          <h2 className="throne-open-title">The #1 Throne is Open!</h2>
+          <p className="throne-open-desc">
+            No bids placed yet. Place a bid of $1.00 or higher to instantly claim the #1 spotlight on the internet.
+          </p>
+          <button onClick={() => handleOpenModal('1.00')} className="btn-nav-primary">
+            Claim Crown for $1.00
+          </button>
+        </section>
+      )}
 
-      {/* CTA Banner */}
-      <div className="cta-banner">
-        <div className="cta-banner-text">
-          <h3>Want this spotlight for your product or brand?</h3>
-          <p>Submit a unique bid between $1.00 and $9,999,999. Instant exposure via Dodo Payments.</p>
-        </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-          <PlusCircle size={18} /> Place a Bid ($1 - $9,999,999)
-        </button>
-      </div>
-
-      {/* Leaderboard Tabs */}
-      <section>
-        <div className="tabs-container">
-          <div className="tab-buttons">
+      {/* Leaderboard Section */}
+      <section className="leaderboard-section">
+        <div className="tabs-header">
+          <div className="tabs-group">
             <button
               className={`tab-btn ${activeTab === 'unique' ? 'active' : ''}`}
               onClick={() => setActiveTab('unique')}
             >
-              <Crown size={16} style={{ color: 'var(--accent-gold)' }} />
-              Lowest Unique Bids
-              <span className="tab-badge">{uniqueBids.length}</span>
+              <Crown size={15} style={{ color: 'var(--accent-gold)' }} />
+              Lowest Unique
+              <span className="tab-count">{uniqueBids.length}</span>
+            </button>
+
+            <button
+              className={`tab-btn ${activeTab === 'clashed' ? 'active' : ''}`}
+              onClick={() => setActiveTab('clashed')}
+            >
+              <Swords size={15} style={{ color: 'var(--accent-coral)' }} />
+              Clashed Duplicates
+              <span className="tab-count">{clashedBids.length}</span>
             </button>
 
             <button
               className={`tab-btn ${activeTab === 'whales' ? 'active' : ''}`}
               onClick={() => setActiveTab('whales')}
             >
-              <Flame size={16} style={{ color: 'var(--accent-gold)' }} />
-              Whales / High Rollers
-              <span className="tab-badge">{highRollers.length}</span>
+              <Flame size={15} style={{ color: 'var(--accent-gold)' }} />
+              High Rollers
+              <span className="tab-count">{highRollers.length}</span>
             </button>
 
             <button
               className={`tab-btn ${activeTab === 'feed' ? 'active' : ''}`}
               onClick={() => setActiveTab('feed')}
             >
-              <Clock size={16} style={{ color: '#38bdf8' }} />
-              Live Activity Feed
-              <span className="tab-badge">{recentFeed.length}</span>
+              <Clock size={15} />
+              Live Feed
+              <span className="tab-count">{recentFeed.length}</span>
             </button>
           </div>
 
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="live-dot" style={{ width: '6px', height: '6px' }} /> Auto-syncing
+          <div className="tabs-live-sync">
+            Live auto-refresh
           </div>
         </div>
 
         {/* Tab 1: Lowest Unique Bids */}
         {activeTab === 'unique' && (
           <div className="leaderboard-list">
-            {uniqueBids.length === 0 && clashedBids.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                No bids yet. Be the first to place a bid!
+            {uniqueBids.length === 0 ? (
+              <div className="empty-state-box">
+                <Crown size={32} className="empty-state-icon" />
+                <h3 className="empty-state-title">No Unique Bids Yet</h3>
+                <p className="empty-state-desc">
+                  Be the first to place an un-clashed bid and take rank #1!
+                </p>
+                <button onClick={() => handleOpenModal('1.00')} className="btn-nav-primary">
+                  Place First Bid ($1.00)
+                </button>
               </div>
             ) : (
-              <>
-                {/* Unique Bids List */}
-                {uniqueBids.map((bid, index) => {
-                  const isTop = index === 0;
-                  return (
-                    <div
-                      key={bid.id}
-                      className={`bid-row ${isTop ? 'champion-row' : ''}`}
-                    >
-                      <div className="bid-rank">
-                        {isTop ? <Crown size={22} style={{ color: 'var(--accent-gold)' }} /> : `#${index + 1}`}
+              uniqueBids.map((bid, index) => {
+                const isWinner = index === 0;
+                return (
+                  <div key={bid.id} className={`bid-card-row ${isWinner ? 'is-winner' : ''}`}>
+                    <div className="bid-left-col">
+                      <div className={`bid-rank-badge ${isWinner ? 'rank-1' : ''}`}>
+                        {isWinner ? <Crown size={16} /> : `#${index + 1}`}
                       </div>
 
-                      <div className="bid-content">
-                        <div className="bid-content-top">
+                      <div className="bid-info">
+                        <div className="bid-header-line">
                           <span className="bid-title">{bid.title}</span>
                           <a
                             href={bid.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bid-url"
+                            className="bid-domain-link"
                             onClick={() => handleTrackClick(bid.id)}
                           >
-                            {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} <ArrowUpRight size={12} />
+                            {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                            <ArrowUpRight size={11} />
                           </a>
-                          <span className="bid-clicks-badge" title="Total website clicks from visitors">
-                            <MousePointerClick size={11} /> {(bid.clicks || 0).toLocaleString()} {(bid.clicks || 0) === 1 ? 'click' : 'clicks'}
+                          <span className="bid-clicks-tag" title="Total clicks from visitors">
+                            <MousePointerClick size={10} /> {(bid.clicks || 0).toLocaleString()}
                           </span>
-                          {bid.twitter && <span className="bid-twitter">{bid.twitter}</span>}
+                          {bid.twitter && <span className="bid-twitter-tag">{bid.twitter}</span>}
                         </div>
-                        {bid.message && <p className="bid-message">{bid.message}</p>}
+                        {bid.message && <p className="bid-pitch-text">{bid.message}</p>}
                       </div>
+                    </div>
 
-                      <div className="bid-right">
-                        <div className="bid-price">${bid.amount.toFixed(2)}</div>
-                        <span className="bid-status-pill pill-unique">
-                          {isTop ? '👑 #1 Spot' : 'Unique'}
+                    <div className="bid-right-col">
+                      <div className="bid-price-wrap">
+                        <div className={`bid-price-num ${isWinner ? 'gold' : ''}`}>
+                          ${bid.amount.toFixed(2)}
+                        </div>
+                        <span className={`bid-status-pill ${isWinner ? 'pill-winner' : 'pill-unique'}`}>
+                          {isWinner ? '👑 #1 Spot' : 'Unique'}
                         </span>
                       </div>
-                    </div>
-                  );
-                })}
 
-                {/* Clashed Bids Section */}
-                {clashedBids.length > 0 && (
-                  <div style={{ marginTop: '24px' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '0.85rem',
-                      color: 'var(--accent-rose)',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      marginBottom: '12px'
-                    }}>
-                      <Swords size={16} /> Clashed Bids (Lost Uniqueness Due to Duplicates)
+                      <button
+                        onClick={() => handleOpenModal((Math.max(1.00, bid.amount - 0.01)).toFixed(2))}
+                        className="bid-row-action-btn"
+                        title="Bid a lower unique amount"
+                      >
+                        Under-bid
+                      </button>
                     </div>
-
-                    {clashedBids.map((bid) => (
-                      <div key={bid.id} className="bid-row clashed" style={{ marginBottom: '8px' }}>
-                        <div className="bid-rank" style={{ color: 'var(--accent-rose)' }}>
-                          <Swords size={18} />
-                        </div>
-                        <div className="bid-content">
-                          <div className="bid-content-top">
-                            <span className="bid-title">{bid.title}</span>
-                            <a
-                              href={bid.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="bid-url"
-                              onClick={() => handleTrackClick(bid.id)}
-                            >
-                              {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} <ArrowUpRight size={12} />
-                            </a>
-                            <span className="bid-clicks-badge" title="Total website clicks from visitors">
-                              <MousePointerClick size={11} /> {(bid.clicks || 0).toLocaleString()} {(bid.clicks || 0) === 1 ? 'click' : 'clicks'}
-                            </span>
-                            {bid.twitter && <span className="bid-twitter">{bid.twitter}</span>}
-                          </div>
-                          {bid.message && <p className="bid-message">{bid.message}</p>}
-                        </div>
-                        <div className="bid-right">
-                          <div className="bid-price" style={{ color: '#fb7185' }}>${bid.amount.toFixed(2)}</div>
-                          <span className="bid-status-pill pill-clashed">
-                            Duplicate ({bid.clashCount} bids)
-                          </span>
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                )}
-              </>
+                );
+              })
             )}
           </div>
         )}
 
-        {/* Tab 2: Whales & High Rollers */}
-        {activeTab === 'whales' && (
+        {/* Tab 2: Clashed Duplicate Bids */}
+        {activeTab === 'clashed' && (
           <div className="leaderboard-list">
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Honoring the biggest spenders who flex their budget on lowestbid.lol.
-            </div>
-            {highRollers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                No whale bids yet. Place a bid to claim the whale spotlight!
+            {clashedBids.length === 0 ? (
+              <div className="empty-state-box">
+                <Swords size={32} className="empty-state-icon" />
+                <h3 className="empty-state-title">No Clashed Bids</h3>
+                <p className="empty-state-desc">
+                  All active bids are currently unique. When two people bid the same dollar amount, both clash and show up here.
+                </p>
               </div>
             ) : (
-              highRollers.map((bid, index) => (
-                <div key={bid.id} className="bid-row">
-                  <div className="bid-rank">
-                    {index === 0 ? '🐋' : `#${index + 1}`}
-                  </div>
-                  <div className="bid-content">
-                    <div className="bid-content-top">
-                      <span className="bid-title">{bid.title}</span>
-                      <a
-                        href={bid.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bid-url"
-                        onClick={() => handleTrackClick(bid.id)}
-                      >
-                        {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} <ArrowUpRight size={12} />
-                      </a>
-                      <span className="bid-clicks-badge" title="Total website clicks from visitors">
-                        <MousePointerClick size={11} /> {(bid.clicks || 0).toLocaleString()} {(bid.clicks || 0) === 1 ? 'click' : 'clicks'}
-                      </span>
-                      {bid.twitter && <span className="bid-twitter">{bid.twitter}</span>}
+              clashedBids.map((bid) => (
+                <div key={bid.id} className="bid-card-row is-clashed">
+                  <div className="bid-left-col">
+                    <div className="bid-rank-badge rank-clash">
+                      <Swords size={16} />
                     </div>
-                    {bid.message && <p className="bid-message">{bid.message}</p>}
+
+                    <div className="bid-info">
+                      <div className="bid-header-line">
+                        <span className="bid-title">{bid.title}</span>
+                        <a
+                          href={bid.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bid-domain-link"
+                          onClick={() => handleTrackClick(bid.id)}
+                        >
+                          {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          <ArrowUpRight size={11} />
+                        </a>
+                        <span className="bid-clicks-tag" title="Total clicks from visitors">
+                          <MousePointerClick size={10} /> {(bid.clicks || 0).toLocaleString()}
+                        </span>
+                        {bid.twitter && <span className="bid-twitter-tag">{bid.twitter}</span>}
+                      </div>
+                      {bid.message && <p className="bid-pitch-text">{bid.message}</p>}
+                    </div>
                   </div>
-                  <div className="bid-right">
-                    <div className="bid-price text-gradient-gold">${bid.amount.toFixed(2)}</div>
-                    <span className="bid-status-pill" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
-                      {bid.amount >= 100 ? 'Whale Flex' : 'Backer'}
-                    </span>
+
+                  <div className="bid-right-col">
+                    <div className="bid-price-wrap">
+                      <div className="bid-price-num coral">${bid.amount.toFixed(2)}</div>
+                      <span className="bid-status-pill pill-clashed">
+                        Duplicate ({bid.clashCount} bids)
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => handleOpenModal((bid.amount + 0.01).toFixed(2))}
+                      className="bid-row-action-btn"
+                    >
+                      Dodge Clash
+                    </button>
                   </div>
                 </div>
               ))
@@ -599,42 +680,115 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Tab 3: Live Feed */}
+        {/* Tab 3: Whales & High Rollers */}
+        {activeTab === 'whales' && (
+          <div className="leaderboard-list">
+            {highRollers.length === 0 ? (
+              <div className="empty-state-box">
+                <Flame size={32} className="empty-state-icon" />
+                <h3 className="empty-state-title">No High Rollers Yet</h3>
+                <p className="empty-state-desc">
+                  Flex your budget on lowestbid.lol by bidding any amount up to $9,999,999.
+                </p>
+              </div>
+            ) : (
+              highRollers.map((bid, index) => (
+                <div key={bid.id} className="bid-card-row">
+                  <div className="bid-left-col">
+                    <div className="bid-rank-badge">
+                      {index === 0 ? '🐋' : `#${index + 1}`}
+                    </div>
+
+                    <div className="bid-info">
+                      <div className="bid-header-line">
+                        <span className="bid-title">{bid.title}</span>
+                        <a
+                          href={bid.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bid-domain-link"
+                          onClick={() => handleTrackClick(bid.id)}
+                        >
+                          {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          <ArrowUpRight size={11} />
+                        </a>
+                        <span className="bid-clicks-tag" title="Total clicks from visitors">
+                          <MousePointerClick size={10} /> {(bid.clicks || 0).toLocaleString()}
+                        </span>
+                        {bid.twitter && <span className="bid-twitter-tag">{bid.twitter}</span>}
+                      </div>
+                      {bid.message && <p className="bid-pitch-text">{bid.message}</p>}
+                    </div>
+                  </div>
+
+                  <div className="bid-right-col">
+                    <div className="bid-price-wrap">
+                      <div className="bid-price-num gold">${bid.amount.toFixed(2)}</div>
+                      <span className="bid-status-pill pill-winner">
+                        {bid.amount >= 100 ? 'Whale Flex' : 'Backer'}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => handleOpenModal((bid.amount + 1.00).toFixed(2))}
+                      className="bid-row-action-btn"
+                    >
+                      Out-flex
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Tab 4: Live Activity Feed */}
         {activeTab === 'feed' && (
           <div className="leaderboard-list">
             {recentFeed.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                No live activity yet. Be the first to place a bid!
+              <div className="empty-state-box">
+                <Clock size={32} className="empty-state-icon" />
+                <h3 className="empty-state-title">No Recent Activity</h3>
+                <p className="empty-state-desc">
+                  Place a bid to see your activity appear live here.
+                </p>
               </div>
             ) : (
               recentFeed.map((bid) => (
-                <div key={bid.id} className="bid-row">
-                  <div className="bid-rank">
-                    <Clock size={16} />
+                <div key={bid.id} className="bid-card-row">
+                  <div className="bid-left-col">
+                    <div className="bid-rank-badge">
+                      <Clock size={15} />
+                    </div>
+
+                    <div className="bid-info">
+                      <div className="bid-header-line">
+                        <span className="bid-title">{bid.title}</span>
+                        <a
+                          href={bid.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bid-domain-link"
+                          onClick={() => handleTrackClick(bid.id)}
+                        >
+                          {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          <ArrowUpRight size={11} />
+                        </a>
+                        <span className="bid-clicks-tag" title="Total clicks from visitors">
+                          <MousePointerClick size={10} /> {(bid.clicks || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      {bid.message && <p className="bid-pitch-text">{bid.message}</p>}
+                    </div>
                   </div>
-                  <div className="bid-content">
-                    <div className="bid-content-top">
-                      <span className="bid-title">{bid.title}</span>
-                      <a
-                        href={bid.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bid-url"
-                        onClick={() => handleTrackClick(bid.id)}
-                      >
-                        {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} <ArrowUpRight size={12} />
-                      </a>
-                      <span className="bid-clicks-badge" title="Total website clicks from visitors">
-                        <MousePointerClick size={11} /> {(bid.clicks || 0).toLocaleString()} {(bid.clicks || 0) === 1 ? 'click' : 'clicks'}
+
+                  <div className="bid-right-col">
+                    <div className="bid-price-wrap">
+                      <div className="bid-price-num">${bid.amount.toFixed(2)}</div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {formatTimeAgo(bid.createdAt)}
                       </span>
                     </div>
-                    {bid.message && <p className="bid-message">{bid.message}</p>}
-                  </div>
-                  <div className="bid-right">
-                    <div className="bid-price">${bid.amount.toFixed(2)}</div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {formatTimeAgo(bid.createdAt)}
-                    </span>
                   </div>
                 </div>
               ))
@@ -643,28 +797,37 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* FAQ / How It Works */}
-      <section className="faq-section">
-        <h3 className="faq-title">How Does lowestbid.lol Work?</h3>
-        <div className="faq-grid">
-          <div className="faq-card">
-            <h4><Crown size={18} style={{ color: 'var(--accent-gold)' }} /> 1. Submit Your Bid</h4>
+      {/* How It Works Section */}
+      <section id="how-it-works" className="how-section">
+        <h3 className="how-section-title">How Lowest Unique Bidding Works</h3>
+        <div className="how-grid">
+          <div className="how-card">
+            <div className="how-card-icon" style={{ background: 'var(--accent-gold-bg)', color: 'var(--accent-gold)' }}>
+              <Crown size={18} />
+            </div>
+            <h4>1. Pick Any Amount ($1.00+)</h4>
             <p>
-              Choose any bid amount from <strong>$1.00</strong> up to <strong>$9,999,999</strong>. Enter your product title, destination link, and pitch.
+              Enter your website URL, product name, and any bid from <strong>$1.00</strong> to <strong>$9,999,999</strong>. No account required.
             </p>
           </div>
 
-          <div className="faq-card">
-            <h4><Swords size={18} style={{ color: 'var(--accent-rose)' }} /> 2. The Lowest Unique Rule</h4>
+          <div className="how-card">
+            <div className="how-card-icon" style={{ background: 'var(--accent-coral-bg)', color: 'var(--accent-coral)' }}>
+              <Swords size={18} />
+            </div>
+            <h4>2. Avoid Duplicate Clashes</h4>
             <p>
-              If two people bid the exact same price (e.g. two bids of $1.00), both bids <strong>clash</strong>. The throne goes to the <em>lowest unique bid</em>!
+              If two people bid $1.00, both clash and lose uniqueness! The crown goes to the <strong>lowest unique bid</strong>.
             </p>
           </div>
 
-          <div className="faq-card">
-            <h4><ShieldCheck size={18} style={{ color: '#10b981' }} /> 3. Powered by Dodo Payments</h4>
+          <div className="how-card">
+            <div className="how-card-icon" style={{ background: 'var(--accent-emerald-bg)', color: 'var(--accent-emerald)' }}>
+              <ShieldCheck size={18} />
+            </div>
+            <h4>3. Instant Traffic & Clicks</h4>
             <p>
-              Instant, secure payments handled seamlessly via Dodo Payments. Once confirmed, your bid immediately takes its spot on the public leaderboard.
+              Payments are verified instantly via Dodo Payments. Your link goes live with real-time visitor click tracking.
             </p>
           </div>
         </div>
@@ -672,91 +835,84 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="site-footer">
-        <div className="footer-content">
-          <div>
-            <strong>lowestbid.lol</strong> &mdash; The anti-outbid pay-to-rank game.
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-            <Link href="/terms" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.85rem', transition: 'color 150ms' }}>
-              Terms & Rules
-            </Link>
-            <Link href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.85rem', transition: 'color 150ms' }}>
-              Privacy Policy
-            </Link>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.8rem' }}>
-              <ShieldCheck size={16} /> Secured by Dodo Payments
-            </span>
-            <a
-              href="https://twitter.com/intent/tweet?text=Check%20out%20lowestbid.lol%20-%20the%20pay-to-rank%20billboard%20where%20the%20lowest%20unique%20bid%20wins!&url=https://lowestbid.lol"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-            >
-              <Share2 size={14} /> Share on X
-            </a>
-          </div>
+        <div>
+          <strong>lowestbid.lol</strong> &mdash; The anti-outbid pay-to-rank game.
+        </div>
+        <div className="footer-links">
+          <Link href="/terms" className="footer-link">Terms & Rules</Link>
+          <Link href="/privacy" className="footer-link">Privacy Policy</Link>
+          <a
+            href="https://twitter.com/intent/tweet?text=Check%20out%20lowestbid.lol%20-%20the%20pay-to-rank%20billboard%20where%20the%20lowest%20unique%20bid%20wins!&url=https://lowestbid.lol"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <Share2 size={13} /> Share on X
+          </a>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--accent-emerald)' }}>
+            <ShieldCheck size={14} /> Dodo Payments
+          </span>
         </div>
       </footer>
+
+      {/* Floating Action Bar for Mobile */}
+      <div className="mobile-sticky-cta">
+        <button
+          onClick={() => handleOpenModal(quickAmount, quickUrl)}
+          className="btn-checkout-primary"
+        >
+          <PlusCircle size={17} /> Place a Bid (${parseFloat(quickAmount || '1.07').toFixed(2)})
+        </button>
+      </div>
 
       {/* Bid Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => !submitting && setIsModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal-close-btn"
               onClick={() => !submitting && setIsModalOpen(false)}
               aria-label="Close modal"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
 
             <div className="modal-header">
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '3px 10px',
-                borderRadius: '999px',
-                background: 'rgba(245, 158, 11, 0.15)',
-                color: '#f59e0b',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                marginBottom: '10px'
-              }}>
-                <Crown size={12} /> Claim The Spotlight
+              <span className="modal-badge">
+                <Crown size={12} /> Claim The Rank
               </span>
               <h3 className="modal-title">Place Your Bid</h3>
-              <p className="modal-subtitle">
-                Bid between $1.00 and $9,999,999. Powered by Dodo Payments.
+              <p className="modal-desc">
+                Min $1.00. Lowest unique bid claims the #1 spotlight immediately.
               </p>
             </div>
 
             <form onSubmit={handleBidSubmit}>
               {/* Bid Amount */}
               <div className="form-group">
-                <label className="form-label">
-                  Bid Amount ($ USD) &mdash; Min $1.00, Max $9,999,999.00
-                </label>
+                <div className="form-label-row">
+                  <label className="form-label">Bid Amount ($ USD)</label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Min $1.00</span>
+                </div>
                 <input
                   type="number"
                   step="0.01"
                   min="1.00"
                   max="9999999"
-                  className="input-text"
+                  className="form-input"
                   placeholder="1.07"
                   value={formAmount}
                   onChange={(e) => setFormAmount(e.target.value)}
                   required
                 />
-                {/* Quick chip amounts */}
-                <div className="quick-amount-chips">
-                  {['1.00', '1.07', '1.99', '2.50', '4.20', '10.00', '100.00'].map((chip) => (
+                <div className="quick-chips-row" style={{ marginTop: '8px', justifyContent: 'flex-start' }}>
+                  {quickChips.map((chip) => (
                     <button
                       type="button"
                       key={chip}
-                      className="chip-btn"
-                      onClick={() => handleQuickChip(chip)}
+                      className={`quick-chip ${formAmount === chip ? 'active' : ''}`}
+                      onClick={() => setFormAmount(chip)}
                     >
                       ${chip}
                     </button>
@@ -764,40 +920,26 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Title / Project */}
+              {/* Destination URL */}
               <div className="form-group">
-                <label className="form-label">Project / Handle / Name</label>
-                <input
-                  type="text"
-                  maxLength={50}
-                  className="input-text"
-                  placeholder="e.g. My Cool AI App or @YourHandle"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* URL */}
-              <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label className="form-label" style={{ marginBottom: 0 }}>Destination URL</label>
+                <div className="form-label-row">
+                  <label className="form-label">Destination URL</label>
                   {fetchingMeta && (
-                    <span className="meta-status-text" style={{ color: '#38bdf8' }}>
-                      <Loader2 size={12} className="animate-spin" /> Fetching description...
+                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Loader2 size={11} className="animate-spin" /> Fetching info...
                     </span>
                   )}
                   {!fetchingMeta && metaStatus && (
-                    <span className="meta-status-text">
-                      <Sparkles size={12} /> {metaStatus}
+                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)' }}>
+                      {metaStatus}
                     </span>
                   )}
                 </div>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="url"
-                    className="input-text"
-                    style={{ paddingRight: formUrl.trim() ? '105px' : '14px' }}
+                    className="form-input"
+                    style={{ paddingRight: formUrl.trim() ? '90px' : '12px' }}
                     placeholder="https://yourproduct.com"
                     value={formUrl}
                     onChange={(e) => setFormUrl(e.target.value)}
@@ -810,68 +952,85 @@ export default function HomePage() {
                       className="meta-fetch-btn"
                       onClick={() => handleFetchMeta(formUrl)}
                       disabled={fetchingMeta}
-                      title="Auto-fetch description and title from website"
                     >
-                      {fetchingMeta ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                      Auto-fetch
+                      {fetchingMeta ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                      Fetch
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Pitch Message */}
+              {/* Project / Name */}
               <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label className="form-label" style={{ marginBottom: 0 }}>Tagline / Short Pitch (Optional)</label>
-                  {formMessage && (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {formMessage.length}/150
-                    </span>
-                  )}
+                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
+                  Project Name or Handle
+                </label>
+                <input
+                  type="text"
+                  maxLength={50}
+                  className="form-input"
+                  placeholder="e.g. My Next.js SaaS or @YourHandle"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Short Pitch */}
+              <div className="form-group">
+                <div className="form-label-row">
+                  <label className="form-label">Short Pitch / Tagline (Optional)</label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {formMessage.length}/140
+                  </span>
                 </div>
                 <input
                   type="text"
-                  maxLength={150}
-                  className="input-text"
-                  placeholder="The best tool for devs to ship fast..."
+                  maxLength={140}
+                  className="form-input"
+                  placeholder="The simplest way to ship products..."
                   value={formMessage}
                   onChange={(e) => setFormMessage(e.target.value)}
                 />
               </div>
 
-              {/* Twitter / X Handle */}
+              {/* Twitter */}
               <div className="form-group">
-                <label className="form-label">Twitter / X Handle (Optional)</label>
+                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
+                  Twitter / X Handle (Optional)
+                </label>
                 <input
                   type="text"
                   maxLength={30}
-                  className="input-text"
-                  placeholder="@yourusername"
+                  className="form-input"
+                  placeholder="@username"
                   value={formTwitter}
                   onChange={(e) => setFormTwitter(e.target.value)}
                 />
               </div>
 
-              {/* Live Preview */}
-              <div className="preview-box">
-                <div className="preview-label">Live Card Preview</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff' }}>
+              {/* Live Preview Card */}
+              <div className="preview-card">
+                <div className="preview-tag">Preview on Leaderboard</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {formTitle || 'Your Project Name'}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#38bdf8', textDecoration: 'underline', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       {formUrl || 'https://yourproduct.com'}
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginTop: '6px' }}>
-                      {formMessage || 'Your pitch message will appear here for visitors.'}
-                    </div>
+                    {formMessage && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        {formMessage}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f59e0b', fontFamily: 'var(--font-heading)' }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--accent-gold)' }}>
                       ${parseFloat(formAmount || '1.00').toFixed(2)}
                     </div>
-                    <span className="bid-status-pill pill-unique" style={{ marginTop: '4px', display: 'inline-block' }}>
+                    <span className="bid-status-pill pill-unique" style={{ fontSize: '0.65rem' }}>
                       Preview
                     </span>
                   </div>
@@ -880,18 +1039,18 @@ export default function HomePage() {
 
               {errorMessage && (
                 <div style={{
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  background: 'rgba(244, 63, 94, 0.15)',
-                  border: '1px solid rgba(244, 63, 94, 0.3)',
-                  color: '#fb7185',
-                  fontSize: '0.85rem',
-                  marginBottom: '18px',
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-xs)',
+                  background: 'var(--accent-coral-bg)',
+                  border: '1px solid var(--accent-coral-border)',
+                  color: 'var(--accent-coral)',
+                  fontSize: '0.82rem',
+                  marginBottom: '14px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px'
                 }}>
-                  <AlertCircle size={16} /> {errorMessage}
+                  <AlertCircle size={15} /> {errorMessage}
                 </div>
               )}
 
@@ -899,23 +1058,22 @@ export default function HomePage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary"
-                style={{ width: '100%', padding: '14px', fontSize: '1rem' }}
+                className="btn-checkout-primary"
               >
                 {submitting ? (
                   <>
-                    <Loader2 size={18} className="animate-spin" /> Redirecting to Checkout...
+                    <Loader2 size={16} className="animate-spin" /> Redirecting to Checkout...
                   </>
                 ) : (
                   <>
-                    <DollarSign size={18} /> Pay ${parseFloat(formAmount || '1.00').toFixed(2)} with Dodo Payments
+                    <DollarSign size={16} /> Pay ${parseFloat(formAmount || '1.00').toFixed(2)} via Dodo Payments
                   </>
                 )}
               </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '14px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <ShieldCheck size={14} style={{ color: '#10b981' }} />
-                Secured by Dodo Payments &bull; Instant activation upon payment
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <ShieldCheck size={13} style={{ color: 'var(--accent-emerald)' }} />
+                Instant activation &bull; Powered by Dodo Payments
               </div>
             </form>
           </div>

@@ -40,79 +40,80 @@ function SandboxCheckoutContent() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{
-        maxWidth: '480px',
+        maxWidth: '460px',
         width: '100%',
-        background: '#11131c',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: '20px',
-        padding: '36px',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--radius-md)',
+        padding: '32px',
+        boxShadow: 'var(--shadow-elevated)',
         position: 'relative'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', textDecoration: 'none', fontSize: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.85rem' }}>
             <ArrowLeft size={16} /> Back
           </Link>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '999px',
-            background: 'rgba(245, 158, 11, 0.15)',
-            color: '#f59e0b',
+            padding: '3px 10px',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--accent-gold-bg)',
+            border: '1px solid var(--accent-gold-border)',
+            color: 'var(--accent-gold)',
             fontSize: '0.72rem',
             fontWeight: 700,
             textTransform: 'uppercase'
           }}>
-            <Sparkles size={12} /> Dodo Sandbox Mode
+            <Sparkles size={12} /> Sandbox Mode
           </span>
         </div>
 
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '16px',
-            background: 'rgba(16, 185, 129, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+            width: '52px',
+            height: '52px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--accent-emerald-bg)',
+            border: '1px solid var(--accent-emerald-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px',
-            color: '#10b981'
+            margin: '0 auto 14px',
+            color: 'var(--accent-emerald)'
           }}>
-            <ShieldCheck size={32} />
+            <ShieldCheck size={28} />
           </div>
-          <h2 style={{ fontSize: '1.6rem', marginBottom: '6px', color: '#fff' }}>Dodo Payments Checkout</h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+          <h2 style={{ fontSize: '1.4rem', marginBottom: '6px', color: 'var(--text-main)' }}>Dodo Payments Checkout</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
             Simulate a secure one-time payment for your bid on <strong>lowestbid.lol</strong>
           </p>
         </div>
 
         <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          padding: '18px 20px',
-          marginBottom: '24px'
+          background: 'var(--bg-surface-elevated)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '16px',
+          marginBottom: '20px'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.9rem', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
             <span>Item</span>
-            <span style={{ color: '#fff', fontWeight: 600 }}>lowestbid.lol Spotlight Bid</span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>lowestbid.lol Spotlight Bid</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.9rem', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
             <span>Bid ID</span>
-            <span style={{ color: '#cbd5e1', fontFamily: 'monospace', fontSize: '0.8rem' }}>{bidId.slice(0, 16)}...</span>
+            <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.8rem' }}>{bidId.slice(0, 16)}...</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '1.1rem', fontWeight: 800 }}>
-            <span style={{ color: '#fff' }}>Total Amount</span>
-            <span style={{ color: '#f59e0b' }}>${parseFloat(amount).toFixed(2)} USD</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '1.05rem', fontWeight: 800 }}>
+            <span style={{ color: 'var(--text-main)' }}>Total Amount</span>
+            <span style={{ color: 'var(--accent-gold)' }}>${parseFloat(amount).toFixed(2)} USD</span>
           </div>
         </div>
 
         {error && (
-          <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#fb7185', fontSize: '0.85rem', marginBottom: '18px' }}>
+          <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-xs)', background: 'var(--accent-coral-bg)', border: '1px solid var(--accent-coral-border)', color: 'var(--accent-coral)', fontSize: '0.82rem', marginBottom: '16px' }}>
             {error}
           </div>
         )}
@@ -121,20 +122,20 @@ function SandboxCheckoutContent() {
           onClick={handleSimulatePayment}
           disabled={loading}
           className="btn-primary"
-          style={{ width: '100%', padding: '14px', fontSize: '1rem' }}
+          style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }}
         >
           {loading ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> Verifying Payment...
+              <Loader2 size={16} className="animate-spin" /> Verifying Payment...
             </>
           ) : (
             <>
-              <CheckCircle2 size={18} /> Complete ${parseFloat(amount).toFixed(2)} Payment
+              <CheckCircle2 size={16} /> Complete ${parseFloat(amount).toFixed(2)} Payment
             </>
           )}
         </button>
 
-        <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', marginTop: '18px', lineHeight: 1.4 }}>
+        <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '16px', lineHeight: 1.4 }}>
           In production, this redirects to the official hosted Dodo Payments portal. Once you enter your Dodo API keys in <code>.env.local</code>, real card, UPI, and bank checkouts will be processed.
         </p>
       </div>

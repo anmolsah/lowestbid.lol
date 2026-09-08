@@ -59,14 +59,14 @@ function SuccessContent() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{
-        maxWidth: '540px',
+        maxWidth: '520px',
         width: '100%',
-        background: '#11131c',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: '24px',
-        padding: '40px',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--radius-md)',
+        padding: '36px',
         textAlign: 'center',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
+        boxShadow: 'var(--shadow-elevated)',
         position: 'relative',
         overflow: 'hidden'
       }}>
@@ -76,25 +76,27 @@ function SuccessContent() {
           top: '-30%',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '300px',
-          height: '300px',
-          background: 'radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent 70%)',
+          width: '280px',
+          height: '280px',
+          background: isChampion
+            ? 'radial-gradient(circle, var(--accent-gold-glow) 0%, transparent 70%)'
+            : 'radial-gradient(circle, var(--accent-emerald-bg) 0%, transparent 70%)',
           pointerEvents: 'none'
         }} />
 
         <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '20px',
-          background: isChampion ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-          border: `1px solid ${isChampion ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+          width: '56px',
+          height: '56px',
+          borderRadius: 'var(--radius-sm)',
+          background: isChampion ? 'var(--accent-gold-bg)' : 'var(--accent-emerald-bg)',
+          border: `1px solid ${isChampion ? 'var(--accent-gold-border)' : 'var(--accent-emerald-border)'}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 20px',
-          color: isChampion ? '#f59e0b' : '#10b981'
+          margin: '0 auto 16px',
+          color: isChampion ? 'var(--accent-gold)' : 'var(--accent-emerald)'
         }}>
-          {isChampion ? <Crown size={36} /> : <CheckCircle size={36} />}
+          {isChampion ? <Crown size={30} /> : <CheckCircle size={30} />}
         </div>
 
         <span style={{
@@ -102,22 +104,22 @@ function SuccessContent() {
           alignItems: 'center',
           gap: '6px',
           padding: '4px 12px',
-          borderRadius: '999px',
-          background: isChampion ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-          color: isChampion ? '#f59e0b' : '#34d399',
+          borderRadius: 'var(--radius-full)',
+          background: isChampion ? 'var(--accent-gold-bg)' : 'var(--accent-emerald-bg)',
+          color: isChampion ? 'var(--accent-gold)' : 'var(--accent-emerald)',
           fontSize: '0.75rem',
           fontWeight: 700,
           textTransform: 'uppercase',
-          marginBottom: '16px'
+          marginBottom: '14px'
         }}>
           <Sparkles size={13} /> {isChampion ? 'REIGNING CHAMPION #1' : 'BID CONFIRMED & ACTIVE'}
         </span>
 
-        <h1 style={{ fontSize: '2rem', marginBottom: '12px', color: '#fff' }}>
+        <h1 style={{ fontSize: '1.8rem', marginBottom: '10px', color: 'var(--text-main)' }}>
           {isChampion ? 'You Took The Throne!' : 'Your Bid is Live!'}
         </h1>
 
-        <p style={{ color: '#94a3b8', fontSize: '1rem', lineHeight: 1.5, marginBottom: '28px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.5, marginBottom: '24px' }}>
           {isChampion
             ? 'Congratulations! Your bid is currently the lowest unique bid on lowestbid.lol. Your project is featured in the #1 Hero Crown Spotlight!'
             : 'Your submission is locked in on the public leaderboard. If you have the lowest unique bid, your spotlight is active!'}
@@ -125,21 +127,21 @@ function SuccessContent() {
 
         {bidDetails && (
           <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
-            padding: '20px',
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '16px',
             textAlign: 'left',
-            marginBottom: '28px'
+            marginBottom: '24px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>{bidDetails.title}</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f59e0b', fontFamily: 'var(--font-heading)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>{bidDetails.title}</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--accent-gold)', fontFamily: 'var(--font-heading)' }}>
                 ${bidDetails.amount?.toFixed(2)}
               </span>
             </div>
             {bidDetails.message && (
-              <p style={{ color: '#cbd5e1', fontSize: '0.9rem', marginBottom: '12px', lineHeight: 1.4 }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '10px', lineHeight: 1.4 }}>
                 {bidDetails.message}
               </p>
             )}
@@ -147,25 +149,24 @@ function SuccessContent() {
               href={bidDetails.url}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '0.85rem', textDecoration: 'none' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-main)', fontSize: '0.82rem', textDecoration: 'none' }}
             >
-              <ExternalLink size={14} /> {bidDetails.url}
+              <ExternalLink size={13} /> {bidDetails.url}
             </a>
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Link href="/" className="btn-primary" style={{ textDecoration: 'none', justifyContent: 'center' }}>
-            Go to Leaderboard <ArrowRight size={18} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <Link href="/" className="btn-primary">
+            Go to Leaderboard <ArrowRight size={16} />
           </Link>
           <a
             href={shareUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
-            style={{ textDecoration: 'none', justifyContent: 'center' }}
           >
-            <Share2 size={16} /> Brag on X / Twitter
+            <Share2 size={15} /> Brag on X / Twitter
           </a>
         </div>
       </div>
