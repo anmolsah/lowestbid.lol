@@ -51,7 +51,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'URL is required' }, { status: 400 });
     }
 
-    let targetUrl = url.trim();
+    let rawUrl = url.trim();
+
+    // Check if input is a Twitter/X handle or URL
+    if (rawUrl.startsWith('@')) {
+      const handle = rawUrl.replace(/^@+/, '');
+      return NextResponse.json({
+        success: true,
+        title: `@${handle}`,
+        description: `Check out @${handle} on X`,
+        favicon: `https://unavatar.io/x/${handle}`,
+        url: `https://x.com/${handle}`,
+        twitter: `@${handle}`,
+        domain: 'x.com',
+        isTwitter: true,
+      });
+    }
+
+    const twitterMatch = rawUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]{1,30})/i);
+    if (twitterMatch && twitterMatch[1]) {
+      const handle = twitterMatch[1];
+      return NextResponse.json({
+        success: true,
+        title: `@${handle}`,
+        description: `Check out @${handle} on X`,
+        favicon: `https://unavatar.io/x/${handle}`,
+        url: `https://x.com/${handle}`,
+        twitter: `@${handle}`,
+        domain: 'x.com',
+        isTwitter: true,
+      });
+    }
+
+    let targetUrl = rawUrl;
     if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
       targetUrl = 'https://' + targetUrl;
     }
@@ -170,6 +202,9 @@ export async function POST(req: Request) {
       success: true,
       description,
       title,
+      favicon: `https://www.google.com/s2/favicons?domain=${parsedUrl.hostname}&sz=64`,
+      domain: parsedUrl.hostname.replace(/^www\./, ''),
+      url: targetUrl,
     });
   } catch (error: any) {
     console.error('Error fetching website metadata:', error);

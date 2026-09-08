@@ -24,6 +24,10 @@ import {
   Moon,
   ArrowRight,
   HelpCircle,
+  Globe,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 interface BidItem {
@@ -82,6 +86,8 @@ export default function HomePage() {
   const [formUrl, setFormUrl] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [formTwitter, setFormTwitter] = useState('');
+  const [formFavicon, setFormFavicon] = useState('');
+  const [showCustomize, setShowCustomize] = useState(false);
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [metaStatus, setMetaStatus] = useState('');
 
@@ -167,25 +173,40 @@ export default function HomePage() {
     const raw = (customUrl !== undefined ? customUrl : formUrl).trim();
     if (!raw) return;
 
+    // Handle @username input
+    if (raw.startsWith('@')) {
+      const handle = raw.replace(/^@+/, '');
+      setFormTitle((prev) => prev || `@${handle}`);
+      setFormTwitter((prev) => prev || `@${handle}`);
+      setFormFavicon(`https://unavatar.io/x/${handle}`);
+      setFormMessage((prev) => prev || `Check out @${handle} on X!`);
+      setMetaStatus('Twitter handle detected');
+      setTimeout(() => setMetaStatus(''), 3500);
+      return;
+    }
+
     let normalized = raw;
     if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
       normalized = 'https://' + normalized;
     }
 
     try {
-      new URL(normalized);
+      const parsed = new URL(normalized);
+      const domainName = parsed.hostname.replace(/^www\./, '');
+      if (!formTitle) setFormTitle(domainName);
+      if (!formFavicon) setFormFavicon(`https://www.google.com/s2/favicons?domain=${domainName}&sz=64`);
     } catch {
       return;
     }
 
     setFetchingMeta(true);
-    setMetaStatus('Auto-filling site info...');
+    setMetaStatus('Auto-filling info...');
 
     try {
       const res = await fetch('/api/fetch-metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: normalized }),
+        body: JSON.stringify({ url: raw }),
       });
 
       const data = await res.json();
@@ -193,8 +214,17 @@ export default function HomePage() {
         if (data.description) {
           setFormMessage(data.description);
         }
-        if (data.title && (!formTitle || formTitle.trim().length === 0)) {
+        if (data.title) {
           setFormTitle(data.title);
+        }
+        if (data.favicon) {
+          setFormFavicon(data.favicon);
+        }
+        if (data.twitter) {
+          setFormTwitter(data.twitter);
+        }
+        if (data.url && raw.startsWith('@')) {
+          setFormUrl(data.url);
         }
         setMetaStatus('Details fetched!');
       } else {
@@ -215,12 +245,14 @@ export default function HomePage() {
       setFormAmount(presetAmount);
       setQuickAmount(presetAmount);
     }
-    if (presetUrl) {
-      setFormUrl(presetUrl);
-      setQuickUrl(presetUrl);
-      handleFetchMeta(presetUrl);
+    const targetUrl = presetUrl !== undefined ? presetUrl : quickUrl;
+    if (targetUrl) {
+      setFormUrl(targetUrl);
+      setQuickUrl(targetUrl);
+      handleFetchMeta(targetUrl);
     }
     setErrorMessage('');
+    setShowCustomize(false);
     setIsModalOpen(true);
   };
 
@@ -243,16 +275,26 @@ export default function HomePage() {
       return;
     }
 
-    if (!formTitle.trim()) {
-      setErrorMessage('Please enter your project name or handle.');
+    const targetUrl = formUrl.trim();
+    if (!targetUrl) {
+      setErrorMessage('Please enter your website URL or @handle.');
       setSubmitting(false);
       return;
     }
 
-    if (!formUrl.trim()) {
-      setErrorMessage('Please enter your destination URL.');
-      setSubmitting(false);
-      return;
+    // Auto-derive title if left empty by user
+    let finalTitle = formTitle.trim();
+    if (!finalTitle) {
+      if (targetUrl.startsWith('@')) {
+        finalTitle = targetUrl;
+      } else {
+        try {
+          const parsed = new URL(targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`);
+          finalTitle = parsed.hostname.replace(/^www\./, '');
+        } catch {
+          finalTitle = 'Anonymous Bidder';
+        }
+      }
     }
 
     try {
@@ -261,8 +303,8 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: numericAmount,
-          title: formTitle.trim(),
-          url: formUrl.trim(),
+          title: finalTitle,
+          url: targetUrl,
           message: formMessage.trim(),
           twitter: formTwitter.trim(),
         }),
@@ -289,6 +331,21 @@ export default function HomePage() {
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
+  };
+
+  const getFaviconUrl = (urlStr: string) => {
+    if (!urlStr) return '';
+    try {
+      const trimmed = urlStr.trim();
+      if (trimmed.startsWith('@')) {
+        return `https://unavatar.io/x/${trimmed.replace(/^@+/, '')}`;
+      }
+      const normalized = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+      const parsed = new URL(normalized);
+      return `https://www.google.com/s2/favicons?domain=${parsed.hostname}&sz=64`;
+    } catch {
+      return '';
+    }
   };
 
   const quickChips = ['1.00', '1.07', '1.43', '1.99', '2.50', '5.00'];
@@ -442,6 +499,17 @@ export default function HomePage() {
           <div className="champion-layout">
             <div className="champion-details">
               <div className="champion-title-row">
+                {reigningChampion.url && (
+                  <img
+                    src={getFaviconUrl(reigningChampion.url)}
+                    alt=""
+                    className="preview-favicon-img"
+                    style={{ width: '24px', height: '24px', borderRadius: '6px' }}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                )}
                 <h2 className="champion-title">{reigningChampion.title}</h2>
                 <a
                   href={reigningChampion.url}
@@ -573,6 +641,17 @@ export default function HomePage() {
 
                       <div className="bid-info">
                         <div className="bid-header-line">
+                          {bid.url && (
+                            <img
+                              src={getFaviconUrl(bid.url)}
+                              alt=""
+                              className="preview-favicon-img"
+                              style={{ width: '16px', height: '16px', borderRadius: '4px' }}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          )}
                           <span className="bid-title">{bid.title}</span>
                           <a
                             href={bid.url}
@@ -639,6 +718,17 @@ export default function HomePage() {
 
                     <div className="bid-info">
                       <div className="bid-header-line">
+                        {bid.url && (
+                          <img
+                            src={getFaviconUrl(bid.url)}
+                            alt=""
+                            className="preview-favicon-img"
+                            style={{ width: '16px', height: '16px', borderRadius: '4px' }}
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
                         <span className="bid-title">{bid.title}</span>
                         <a
                           href={bid.url}
@@ -701,6 +791,17 @@ export default function HomePage() {
 
                     <div className="bid-info">
                       <div className="bid-header-line">
+                        {bid.url && (
+                          <img
+                            src={getFaviconUrl(bid.url)}
+                            alt=""
+                            className="preview-favicon-img"
+                            style={{ width: '16px', height: '16px', borderRadius: '4px' }}
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
                         <span className="bid-title">{bid.title}</span>
                         <a
                           href={bid.url}
@@ -763,6 +864,17 @@ export default function HomePage() {
 
                     <div className="bid-info">
                       <div className="bid-header-line">
+                        {bid.url && (
+                          <img
+                            src={getFaviconUrl(bid.url)}
+                            alt=""
+                            className="preview-favicon-img"
+                            style={{ width: '16px', height: '16px', borderRadius: '4px' }}
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
                         <span className="bid-title">{bid.title}</span>
                         <a
                           href={bid.url}
@@ -866,7 +978,7 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Bid Modal */}
+      {/* Bid Modal - Outbid.lol Style Dead-Simple Onboarding */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => !submitting && setIsModalOpen(false)}>
           <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
@@ -880,32 +992,73 @@ export default function HomePage() {
 
             <div className="modal-header">
               <span className="modal-badge">
-                <Crown size={12} /> Claim The Rank
+                <Crown size={12} /> Claim Spotlight
               </span>
               <h3 className="modal-title">Place Your Bid</h3>
               <p className="modal-desc">
-                Min $1.00. Lowest unique bid claims the #1 spotlight immediately.
+                Min $1.00. Lowest unique bid takes the #1 throne. Live immediately with zero sign up.
               </p>
             </div>
 
             <form onSubmit={handleBidSubmit}>
-              {/* Bid Amount */}
+              {/* Step 1: Destination Link or @handle */}
               <div className="form-group">
                 <div className="form-label-row">
-                  <label className="form-label">Bid Amount ($ USD)</label>
+                  <label className="form-label">Your Link or @Handle</label>
+                  {fetchingMeta && (
+                    <span className="meta-fetch-status-badge">
+                      <Loader2 size={11} className="animate-spin" /> Auto-filling...
+                    </span>
+                  )}
+                  {!fetchingMeta && metaStatus && (
+                    <span className="meta-fetch-status-badge success">
+                      <CheckCircle2 size={11} /> {metaStatus}
+                    </span>
+                  )}
+                </div>
+
+                <div className="input-icon-wrap">
+                  <Globe size={16} className="input-icon-left" />
+                  <input
+                    type="text"
+                    className="form-input has-left-icon"
+                    placeholder="example.com or @yourhandle"
+                    value={formUrl}
+                    onChange={(e) => {
+                      setFormUrl(e.target.value);
+                      if (!formTitle && e.target.value.startsWith('@')) {
+                        setFormTitle(e.target.value);
+                      }
+                    }}
+                    onBlur={() => handleFetchMeta()}
+                    autoFocus
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Step 2: Bid Amount */}
+              <div className="form-group">
+                <div className="form-label-row">
+                  <label className="form-label">Your Bid Amount ($ USD)</label>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Min $1.00</span>
                 </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="1.00"
-                  max="9999999"
-                  className="form-input"
-                  placeholder="1.07"
-                  value={formAmount}
-                  onChange={(e) => setFormAmount(e.target.value)}
-                  required
-                />
+
+                <div className="input-icon-wrap">
+                  <span className="input-amount-prefix">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1.00"
+                    max="9999999"
+                    className="form-input form-input-amount"
+                    placeholder="1.07"
+                    value={formAmount}
+                    onChange={(e) => setFormAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
                 <div className="quick-chips-row" style={{ marginTop: '8px', justifyContent: 'flex-start' }}>
                   {quickChips.map((chip) => (
                     <button
@@ -918,143 +1071,148 @@ export default function HomePage() {
                     </button>
                   ))}
                 </div>
+                <p className="quick-chip-hint" style={{ marginTop: '6px' }}>
+                  💡 Tip: Decimals like $1.07 or $1.43 help dodge duplicate clashes!
+                </p>
               </div>
 
-              {/* Destination URL */}
-              <div className="form-group">
-                <div className="form-label-row">
-                  <label className="form-label">Destination URL</label>
-                  {fetchingMeta && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Loader2 size={11} className="animate-spin" /> Fetching info...
-                    </span>
-                  )}
-                  {!fetchingMeta && metaStatus && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)' }}>
-                      {metaStatus}
-                    </span>
-                  )}
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="url"
-                    className="form-input"
-                    style={{ paddingRight: formUrl.trim() ? '90px' : '12px' }}
-                    placeholder="https://yourproduct.com"
-                    value={formUrl}
-                    onChange={(e) => setFormUrl(e.target.value)}
-                    onBlur={() => handleFetchMeta()}
-                    required
-                  />
-                  {formUrl.trim() && (
-                    <button
-                      type="button"
-                      className="meta-fetch-btn"
-                      onClick={() => handleFetchMeta(formUrl)}
-                      disabled={fetchingMeta}
-                    >
-                      {fetchingMeta ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                      Fetch
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Project / Name */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                  Project Name or Handle
-                </label>
-                <input
-                  type="text"
-                  maxLength={50}
-                  className="form-input"
-                  placeholder="e.g. My Next.js SaaS or @YourHandle"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Short Pitch */}
-              <div className="form-group">
-                <div className="form-label-row">
-                  <label className="form-label">Short Pitch / Tagline (Optional)</label>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {formMessage.length}/140
+              {/* Live Board Preview Card (Outbid.lol trademark) */}
+              <div className="preview-card">
+                <div className="preview-tag-row">
+                  <span className="preview-tag">Live Board Preview</span>
+                  <span className="bid-status-pill pill-unique" style={{ fontSize: '0.65rem' }}>
+                    Preview
                   </span>
                 </div>
-                <input
-                  type="text"
-                  maxLength={140}
-                  className="form-input"
-                  placeholder="The simplest way to ship products..."
-                  value={formMessage}
-                  onChange={(e) => setFormMessage(e.target.value)}
-                />
-              </div>
 
-              {/* Twitter */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>
-                  Twitter / X Handle (Optional)
-                </label>
-                <input
-                  type="text"
-                  maxLength={30}
-                  className="form-input"
-                  placeholder="@username"
-                  value={formTwitter}
-                  onChange={(e) => setFormTwitter(e.target.value)}
-                />
-              </div>
+                <div className="preview-content">
+                  <div className="preview-main-info">
+                    <div className="preview-title-line">
+                      {formFavicon ? (
+                        <img
+                          src={formFavicon}
+                          alt=""
+                          className="preview-favicon-img"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="preview-favicon-fallback">
+                          <Globe size={10} />
+                        </div>
+                      )}
+                      <span className="preview-title-text">
+                        {formTitle || (formUrl ? formUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : 'Your Project Name')}
+                      </span>
+                    </div>
 
-              {/* Live Preview Card */}
-              <div className="preview-card">
-                <div className="preview-tag">Preview on Leaderboard</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {formTitle || 'Your Project Name'}
+                    <div className="preview-domain-text">
+                      {formUrl
+                        ? formUrl.startsWith('@')
+                          ? `x.com/${formUrl.replace(/^@+/, '')}`
+                          : formUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+                        : 'yourdomain.com'}
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {formUrl || 'https://yourproduct.com'}
+
+                    <div className="preview-desc-text">
+                      &ldquo;{formMessage || 'Holding the lowest unique bid on lowestbid.lol!'}&rdquo;
                     </div>
-                    {formMessage && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        {formMessage}
-                      </div>
-                    )}
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--accent-gold)' }}>
+
+                  <div className="preview-bid-col">
+                    <div className="preview-bid-price">
                       ${parseFloat(formAmount || '1.00').toFixed(2)}
                     </div>
-                    <span className="bid-status-pill pill-unique" style={{ fontSize: '0.65rem' }}>
-                      Preview
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
+                      Unique Bid
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Progressive Disclosure - Optional Details */}
+              <div className="customize-accordion">
+                <button
+                  type="button"
+                  className="customize-toggle-btn"
+                  onClick={() => setShowCustomize(!showCustomize)}
+                >
+                  <SlidersHorizontal size={13} />
+                  {showCustomize ? 'Hide custom details' : '+ Customize title, pitch, or Twitter (optional)'}
+                  {showCustomize ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
+
+                {showCustomize && (
+                  <div className="customize-panel">
+                    <div className="form-group" style={{ marginBottom: '12px' }}>
+                      <label className="form-label" style={{ display: 'block', marginBottom: '4px' }}>
+                        Custom Project Name / Title
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={50}
+                        className="form-input"
+                        placeholder="e.g. Acme SaaS"
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '12px' }}>
+                      <div className="form-label-row">
+                        <label className="form-label">Short Pitch / Tagline</label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {formMessage.length}/140
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={140}
+                        className="form-input"
+                        placeholder="The simplest way to ship products..."
+                        value={formMessage}
+                        onChange={(e) => setFormMessage(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '0' }}>
+                      <label className="form-label" style={{ display: 'block', marginBottom: '4px' }}>
+                        Twitter / X Handle
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={30}
+                        className="form-input"
+                        placeholder="@username"
+                        value={formTwitter}
+                        onChange={(e) => setFormTwitter(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {errorMessage && (
-                <div style={{
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-xs)',
-                  background: 'var(--accent-coral-bg)',
-                  border: '1px solid var(--accent-coral-border)',
-                  color: 'var(--accent-coral)',
-                  fontSize: '0.82rem',
-                  marginBottom: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-xs)',
+                    background: 'var(--accent-coral-bg)',
+                    border: '1px solid var(--accent-coral-border)',
+                    color: 'var(--accent-coral)',
+                    fontSize: '0.82rem',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
                   <AlertCircle size={15} /> {errorMessage}
                 </div>
               )}
 
-              {/* Checkout Button */}
+              {/* High-Impact Checkout Button */}
               <button
                 type="submit"
                 disabled={submitting}
@@ -1062,18 +1220,28 @@ export default function HomePage() {
               >
                 {submitting ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Redirecting to Checkout...
+                    <Loader2 size={16} className="animate-spin" /> Redirecting to Secure Checkout...
                   </>
                 ) : (
                   <>
-                    <DollarSign size={16} /> Pay ${parseFloat(formAmount || '1.00').toFixed(2)} via Dodo Payments
+                    <DollarSign size={16} /> Pay ${parseFloat(formAmount || '1.00').toFixed(2)} with Dodo Payments &rarr;
                   </>
                 )}
               </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginTop: '12px',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                }}
+              >
                 <ShieldCheck size={13} style={{ color: 'var(--accent-emerald)' }} />
-                Instant activation &bull; Powered by Dodo Payments
+                Instant activation &bull; Powered by Dodo Payments &bull; No account needed
               </div>
             </form>
           </div>

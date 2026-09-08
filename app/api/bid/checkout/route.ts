@@ -21,38 +21,58 @@ export async function POST(req: Request) {
     const roundedAmount = Math.round(parsedAmount * 100) / 100;
     const amountCents = Math.round(roundedAmount * 100);
 
-    // Validate title
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Project or handle name is required' },
-        { status: 400 }
-      );
-    }
-    const cleanTitle = title.trim().slice(0, 50);
-
-    // Validate URL
+    // Validate and format URL or @handle
     if (!url || typeof url !== 'string' || url.trim().length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Destination URL is required' },
+        { success: false, error: 'Destination URL or @handle is required' },
         { status: 400 }
       );
     }
-    let formattedUrl = url.trim();
+
+    let rawUrl = url.trim();
+    let isTwitterHandle = false;
+    let twitterHandle = (twitter && typeof twitter === 'string') ? twitter.trim().slice(0, 30) : undefined;
+
+    // Handle @username input directly
+    if (rawUrl.startsWith('@')) {
+      const handle = rawUrl.replace(/^@+/, '');
+      rawUrl = `https://x.com/${handle}`;
+      isTwitterHandle = true;
+      if (!twitterHandle) twitterHandle = `@${handle}`;
+    }
+
+    let formattedUrl = rawUrl;
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
       formattedUrl = 'https://' + formattedUrl;
     }
+
     try {
       new URL(formattedUrl);
     } catch {
       return NextResponse.json(
-        { success: false, error: 'Please enter a valid URL (e.g., https://yourproduct.com)' },
+        { success: false, error: 'Please enter a valid URL (e.g., https://yourproduct.com or @handle)' },
         { status: 400 }
       );
     }
 
+    // Derive title from URL or handle if omitted
+    let cleanTitle = (title && typeof title === 'string') ? title.trim().slice(0, 50) : '';
+    if (!cleanTitle) {
+      if (isTwitterHandle && twitterHandle) {
+        cleanTitle = twitterHandle;
+      } else {
+        try {
+          const parsed = new URL(formattedUrl);
+          cleanTitle = parsed.hostname.replace(/^www\./, '');
+        } catch {
+          cleanTitle = 'Anonymous Bidder';
+        }
+      }
+    }
+
     // Clean pitch message and twitter
     const cleanMessage = (message && typeof message === 'string') ? message.trim().slice(0, 160) : '';
-    const cleanTwitter = (twitter && typeof twitter === 'string') ? twitter.trim().slice(0, 30) : undefined;
+    const cleanTwitter = twitterHandle;
 
     // Generate unique Bid ID
     const bidId = `bid_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
