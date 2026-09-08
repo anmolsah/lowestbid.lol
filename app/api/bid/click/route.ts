@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { incrementBidClicks } from '@/lib/db';
+import { incrementBidClicksAsync } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'bidId is required' }, { status: 400 });
     }
 
-    const clicks = incrementBidClicks(bidId);
+    const clicks = await incrementBidClicksAsync(bidId);
 
     return NextResponse.json({
       success: true,

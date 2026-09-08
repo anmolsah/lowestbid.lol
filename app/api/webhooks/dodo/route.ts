@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhookEvent } from '@/lib/dodo';
-import { verifyBid } from '@/lib/db';
+import { verifyBidAsync } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +35,10 @@ export async function POST(req: NextRequest) {
       const paymentId = payload.payment_id || payload.session_id || payload.id;
 
       if (bidId) {
-        verifyBid(bidId);
+        await verifyBidAsync(bidId);
         console.log(`Successfully verified bid from webhook: ${bidId}`);
       } else if (paymentId) {
-        verifyBid(paymentId);
+        await verifyBidAsync(paymentId);
         console.log(`Successfully verified bid by paymentId from webhook: ${paymentId}`);
       }
     }

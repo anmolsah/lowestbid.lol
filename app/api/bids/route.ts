@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getLeaderboardData } from '@/lib/db';
+import { getLeaderboardDataAsync } from '@/lib/db';
 import { isDodoConfigured } from '@/lib/dodo';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const data = getLeaderboardData();
+    const data = await getLeaderboardDataAsync();
     return NextResponse.json({
       success: true,
       data,

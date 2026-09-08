@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyBid, getAllBids } from '@/lib/db';
+import { verifyBidAsync } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'bidId is required' }, { status: 400 });
     }
 
-    const verifiedBid = verifyBid(bidId);
+    const verifiedBid = await verifyBidAsync(bidId);
     if (!verifiedBid) {
       return NextResponse.json({ success: false, error: 'Bid not found' }, { status: 404 });
     }

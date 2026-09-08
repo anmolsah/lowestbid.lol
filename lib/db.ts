@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { getSupabase, isSupabaseConfigured } from './supabase';
 
 export interface Bid {
   id: string;
@@ -32,7 +33,6 @@ const globalForBids = globalThis as unknown as {
 };
 
 // On Vercel serverless / AWS Lambda, process.cwd() is read-only.
-// Use os.tmpdir() on Vercel, and process.cwd()/data in local development.
 const isVercel = Boolean(process.env.VERCEL);
 const DATA_DIR = isVercel
   ? path.join(os.tmpdir(), 'lowestbid-data')
@@ -40,27 +40,40 @@ const DATA_DIR = isVercel
 const DB_FILE = path.join(DATA_DIR, 'bids.json');
 const SEED_FILE = path.join(process.cwd(), 'data', 'bids.json');
 
-// Optional Upstash / Vercel KV persistence if configured
-const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-
-async function syncToKV(bids: Bid[]) {
-  if (!kvUrl || !kvToken) return;
-  try {
-    await fetch(`${kvUrl}/set/lowestbid_bids`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${kvToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(JSON.stringify(bids)),
-    });
-  } catch (err) {
-    console.error('Failed to sync bids to KV:', err);
-  }
+// Convert between TypeScript Bid interface and Supabase DB Row
+function toDbRow(bid: Bid) {
+  return {
+    id: bid.id,
+    amount: bid.amount,
+    amount_cents: bid.amountCents || Math.round(bid.amount * 100),
+    title: bid.title,
+    url: bid.url,
+    message: bid.message || '',
+    twitter: bid.twitter || null,
+    status: bid.status,
+    payment_id: bid.paymentId || null,
+    clicks: bid.clicks || 0,
+    created_at: bid.createdAt || new Date().toISOString(),
+  };
 }
 
-// Ensure data directory and initial database file exist
+function fromDbRow(row: any): Bid {
+  return {
+    id: row.id,
+    amount: Number(row.amount),
+    amountCents: row.amount_cents ?? Math.round(Number(row.amount) * 100),
+    title: row.title,
+    url: row.url,
+    message: row.message || '',
+    twitter: row.twitter || undefined,
+    status: row.status,
+    paymentId: row.payment_id || undefined,
+    clicks: row.clicks || 0,
+    createdAt: row.created_at,
+  };
+}
+
+// Ensure data directory and initial database file exist (for file fallback)
 function ensureDataFile() {
   try {
     if (!fs.existsSync(DATA_DIR)) {
@@ -68,7 +81,6 @@ function ensureDataFile() {
     }
 
     if (!fs.existsSync(DB_FILE)) {
-      // Seed with initial bids from bundled data directory if available
       let initialData = '[]';
       if (fs.existsSync(SEED_FILE)) {
         try {
@@ -109,9 +121,31 @@ export function getAllBids(): Bid[] {
   return globalForBids.bidsCache || [];
 }
 
+// Asynchronously read bids from Supabase if configured, with local fallback
+export async function getAllBidsAsync(): Promise<Bid[]> {
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('bids').select('*');
+        if (!error && data) {
+          const mapped = data.map(fromDbRow);
+          globalForBids.bidsCache = mapped;
+          return mapped;
+        } else if (error) {
+          console.warn('Supabase fetch error, falling back to local:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase connection failed, falling back to local:', err);
+      }
+    }
+  }
+
+  return getAllBids();
+}
+
 // Write bids to JSON with atomic replace and memory cache
 export function saveAllBids(bids: Bid[]): void {
-  // Always update in-memory cache first so operations succeed immediately
   globalForBids.bidsCache = bids;
 
   ensureDataFile();
@@ -126,17 +160,14 @@ export function saveAllBids(bids: Bid[]): void {
       console.warn('Could not persist to disk (serverless ephemeral environment):', writeErr);
     }
   }
-
-  // If KV is configured, sync in background
-  if (kvUrl && kvToken) {
-    syncToKV(bids).catch(() => {});
-  }
 }
 
-// Add or update a bid
+// Add or update a bid (synchronous file + cache)
 export function upsertBid(bid: Bid): void {
   const bids = getAllBids();
-  const existingIdx = bids.findIndex(b => b.id === bid.id || (bid.paymentId && b.paymentId === bid.paymentId));
+  const existingIdx = bids.findIndex(
+    b => b.id === bid.id || (bid.paymentId && b.paymentId === bid.paymentId)
+  );
   if (existingIdx >= 0) {
     bids[existingIdx] = { ...bids[existingIdx], ...bid };
   } else {
@@ -145,7 +176,26 @@ export function upsertBid(bid: Bid): void {
   saveAllBids(bids);
 }
 
-// Increment click count for a bid
+// Add or update a bid in Supabase (with synchronous fallback)
+export async function upsertBidAsync(bid: Bid): Promise<void> {
+  upsertBid(bid);
+
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('bids').upsert(toDbRow(bid));
+        if (error) {
+          console.error('Failed to upsert bid in Supabase:', error.message);
+        }
+      } catch (err) {
+        console.error('Error connecting to Supabase during upsert:', err);
+      }
+    }
+  }
+}
+
+// Increment click count for a bid (sync)
 export function incrementBidClicks(bidId: string): number {
   const bids = getAllBids();
   const bid = bids.find(b => b.id === bidId);
@@ -157,7 +207,25 @@ export function incrementBidClicks(bidId: string): number {
   return 0;
 }
 
-// Mark a bid as verified by paymentId or bidId
+// Increment click count for a bid in Supabase (async)
+export async function incrementBidClicksAsync(bidId: string): Promise<number> {
+  const newClicks = incrementBidClicks(bidId);
+
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase.from('bids').update({ clicks: newClicks }).eq('id', bidId);
+      } catch (err) {
+        console.error('Failed to update clicks in Supabase:', err);
+      }
+    }
+  }
+
+  return newClicks;
+}
+
+// Mark a bid as verified by paymentId or bidId (sync)
 export function verifyBid(paymentIdOrBidId: string): Bid | null {
   const bids = getAllBids();
   const bid = bids.find(b => b.id === paymentIdOrBidId || b.paymentId === paymentIdOrBidId);
@@ -169,9 +237,29 @@ export function verifyBid(paymentIdOrBidId: string): Bid | null {
   return null;
 }
 
-// Compute full leaderboard state with game mechanics
-export function getLeaderboardData() {
-  const allBids = getAllBids();
+// Mark a bid as verified in Supabase (async)
+export async function verifyBidAsync(paymentIdOrBidId: string): Promise<Bid | null> {
+  const verified = verifyBid(paymentIdOrBidId);
+
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase
+          .from('bids')
+          .update({ status: 'verified' })
+          .or(`id.eq.${paymentIdOrBidId},payment_id.eq.${paymentIdOrBidId}`);
+      } catch (err) {
+        console.error('Failed to update verified status in Supabase:', err);
+      }
+    }
+  }
+
+  return verified;
+}
+
+// Compute leaderboard logic from any list of bids
+export function computeLeaderboard(allBids: Bid[]) {
   const verified = allBids.filter(b => b.status === 'verified');
 
   // Count occurrences of each amount (formatted to 2 decimal places)
@@ -195,21 +283,35 @@ export function getLeaderboardData() {
   // Unique bids sorted ascending by amount (Lowest Unique Bids)
   const uniqueBids = bidsWithUniqueness
     .filter(b => b.isUnique)
-    .sort((a, b) => a.amount - b.amount || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        a.amount - b.amount ||
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
 
   // Clashed bids (amounts chosen by 2 or more people)
   const clashedBids = bidsWithUniqueness
     .filter(b => !b.isUnique)
-    .sort((a, b) => a.amount - b.amount || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        a.amount - b.amount ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
   // Reigning champion is the #1 lowest unique bid
   const reigningChampion = uniqueBids.length > 0 ? uniqueBids[0] : null;
 
   // High Rollers: sorted descending by amount (Whales flexing big bids)
-  const highRollers = [...bidsWithUniqueness].sort((a, b) => b.amount - a.amount || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const highRollers = [...bidsWithUniqueness].sort(
+    (a, b) =>
+      b.amount - a.amount ||
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   // Live Chronological Feed
-  const recentFeed = [...bidsWithUniqueness].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const recentFeed = [...bidsWithUniqueness].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   // Calculate overall platform stats
   const totalVolume = verified.reduce((sum, b) => sum + b.amount, 0);
@@ -234,4 +336,16 @@ export function getLeaderboardData() {
     recentFeed,
     stats,
   };
+}
+
+// Synchronous leaderboard computation
+export function getLeaderboardData() {
+  const allBids = getAllBids();
+  return computeLeaderboard(allBids);
+}
+
+// Asynchronous leaderboard computation (reads from Supabase if configured)
+export async function getLeaderboardDataAsync() {
+  const allBids = await getAllBidsAsync();
+  return computeLeaderboard(allBids);
 }

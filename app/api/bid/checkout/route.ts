@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { upsertBid, Bid } from '@/lib/db';
+import { upsertBidAsync, Bid } from '@/lib/db';
 import { createCheckout } from '@/lib/dodo';
 
 export const dynamic = 'force-dynamic';
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
       paymentId: checkout.sessionId,
     };
 
-    upsertBid(newBid);
+    await upsertBidAsync(newBid);
 
     return NextResponse.json({
       success: true,

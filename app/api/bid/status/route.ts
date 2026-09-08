@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllBids, verifyBid, getLeaderboardData } from '@/lib/db';
+import { getAllBidsAsync, verifyBidAsync, getLeaderboardDataAsync } from '@/lib/db';
 import { retrieveCheckoutSession } from '@/lib/dodo';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'bid_id query parameter is required' }, { status: 400 });
     }
 
-    const allBids = getAllBids();
+    const allBids = await getAllBidsAsync();
     let bid = allBids.find((b) => b.id === bidId);
 
     // If bid not found yet, check if paymentId matches
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
           session &&
           (Boolean(session.payment_id) || (session as any).status === 'completed' || (session as any).payment_status === 'succeeded')
         ) {
-          const verified = verifyBid(bid.id);
+          const verified = await verifyBidAsync(bid.id);
           if (verified) {
             bid = verified;
           }
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const { reigningChampion } = getLeaderboardData();
+    const { reigningChampion } = await getLeaderboardDataAsync();
     const isChampion = reigningChampion ? reigningChampion.id === bid.id : false;
 
     return NextResponse.json({
