@@ -565,12 +565,23 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="site-footer">
         <div><strong>lowestbid.lol</strong> &mdash; The minimalist pay-to-rank board.</div>
-        <div className="footer-links">
+        
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '8px', fontSize: '0.85rem' }}>
+          <span>Total Products Added: <strong>{uniqueBids.length + clashedBids.length}</strong></span>
+          <span>&bull;</span>
+          <span>Total Revenue: <strong>${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}</strong></span>
+        </div>
+
+        <div className="footer-links" style={{ marginTop: '12px' }}>
           <Link href="/terms" className="footer-link">Terms</Link>
           <Link href="/privacy" className="footer-link">Privacy</Link>
           <a href="https://twitter.com/intent/tweet?text=Check%20out%20lowestbid.lol" target="_blank" rel="noopener noreferrer" className="footer-link">
             Share on X
           </a>
+        </div>
+
+        <div style={{ marginTop: '16px', fontSize: '0.85rem' }}>
+          Built by <a href="https://x.com/anni_i29" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontWeight: 600, color: 'var(--text-main)' }}>@anni_i29</a>
         </div>
       </footer>
 
