@@ -1,59 +1,25 @@
 [
   {
-    "id": "bid_1788837868728_o7l2tg",
-    "amount": 10,
-    "amountCents": 1000,
-    "title": "Firstissue.dev",
-    "url": "https://www.firstissue.dev/",
-    "message": "Discover beginner-friendly open source issues perfect for your first contribution. Ideal for students and new developers. Find, track, and manage cont",
-    "createdAt": "2026-09-08T03:24:30.327Z",
+    "id": "bid_1788927058910_3lhgns",
+    "amount": 1.5,
+    "amountCents": 150,
+    "title": "Test",
+    "url": "https://example.com",
+    "message": "",
     "status": "pending",
-    "paymentId": "cks_0Nn82wB7sgVaGMRVf7erN"
+    "paymentId": "sandbox_session_bid_1788927058910_3lhgns",
+    "clicks": 0,
+    "createdAt": "2026-09-09T04:10:59.676+00:00"
   },
   {
-    "id": "bid_1788885544579_unnh4b",
-    "amount": 1.07,
-    "amountCents": 107,
-    "title": "@johndoe",
-    "url": "https://x.com/johndoe",
+    "id": "bid_1788927060098_xdr1lx",
+    "amount": 4.5,
+    "amountCents": 450,
+    "title": "Test",
+    "url": "https://example.com",
     "message": "",
-    "twitter": "@johndoe",
-    "createdAt": "2026-09-08T16:39:06.238Z",
+    "createdAt": "2026-09-09T04:11:00.434Z",
     "status": "pending",
-    "paymentId": "cks_0NnAU45bec1u0VO2v3Lfa"
-  },
-  {
-    "id": "bid_1788885546328_ro9i0m",
-    "amount": 1.43,
-    "amountCents": 143,
-    "title": "lowestbid.lol",
-    "url": "https://lowestbid.lol",
-    "message": "",
-    "createdAt": "2026-09-08T16:39:06.941Z",
-    "status": "pending",
-    "paymentId": "cks_0NnAU4FpW2l3jsKYK9uFe"
-  },
-  {
-    "id": "bid_1788887554400_j3lrem",
-    "amount": 1.07,
-    "amountCents": 107,
-    "title": "@johndoe",
-    "url": "https://x.com/johndoe",
-    "message": "",
-    "twitter": "@johndoe",
-    "createdAt": "2026-09-08T17:12:35.818Z",
-    "status": "pending",
-    "paymentId": "cks_0NnAaR7d4dhPAjZSOvpIl"
-  },
-  {
-    "id": "bid_1788887555894_wncnle",
-    "amount": 1.43,
-    "amountCents": 143,
-    "title": "lowestbid.lol",
-    "url": "https://lowestbid.lol",
-    "message": "",
-    "createdAt": "2026-09-08T17:12:37.155Z",
-    "status": "pending",
-    "paymentId": "cks_0NnAaRDD6CP1wuMzhYvTR"
+    "paymentId": "sandbox_session_bid_1788927060098_xdr1lx"
   }
 ]

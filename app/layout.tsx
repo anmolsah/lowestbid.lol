@@ -17,7 +17,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL('https://lowestbid.lol'),
   title: 'lowestbid.lol — The Anti-Outbid Leaderboard',
-  description: 'Bid as low as $1 to claim the #1 spotlight on the internet. The lowest unique bid owns the throne. Secured by Dodo Payments.',
+  description: 'Outsmart the whales without breaking the piggy bank. Pick your lucky multiple of $1.50, dodge the duplicate drama, and claim the internet’s most unhinged #1 throne.',
   keywords: ['lowestbid', 'outbid', 'leaderboard', 'pay to rank', 'dodo payments', 'indie hacker', 'viral bidding'],
   icons: {
     icon: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'lowestbid.lol — The Anti-Outbid Leaderboard',
-    description: 'Can you hold the crown with the lowest unique bid? Bid from $1 to $9,999,999.',
+    description: 'Outsmart the whales without breaking the piggy bank. Pick your lucky multiple of $1.50, dodge the duplicate drama, and claim the internet’s most unhinged #1 throne.',
     url: 'https://lowestbid.lol',
     siteName: 'lowestbid.lol',
     images: [

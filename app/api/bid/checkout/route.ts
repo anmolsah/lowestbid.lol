@@ -9,17 +9,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { title, url, message, twitter, amount } = body;
 
-    // Validate amount
+    // Validate amount (must be in multiples of $1.50)
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount < 1 || parsedAmount > 9999999) {
+    if (isNaN(parsedAmount) || parsedAmount < 1.5 || parsedAmount > 9999999) {
       return NextResponse.json(
-        { success: false, error: 'Bid amount must be between $1.00 and $9,999,999.00' },
+        { success: false, error: 'Bid amount must be at least $1.50 and a multiple of $1.50' },
         { status: 400 }
       );
     }
 
     const roundedAmount = Math.round(parsedAmount * 100) / 100;
     const amountCents = Math.round(roundedAmount * 100);
+
+    // Enforce multiple of $1.50 (150 cents)
+    if (amountCents % 150 !== 0) {
+      return NextResponse.json(
+        { success: false, error: 'Bid amount must be a multiple of $1.50 (e.g., $1.50, $3.00, $4.50, $6.00, $7.50)' },
+        { status: 400 }
+      );
+    }
 
     // Validate and format URL or @handle
     if (!url || typeof url !== 'string' || url.trim().length === 0) {

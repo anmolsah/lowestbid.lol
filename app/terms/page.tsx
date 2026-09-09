@@ -51,16 +51,16 @@ export default function TermsPage() {
           </p>
           <ul>
             <li>
-              <strong>Minimum Bid:</strong> The lowest bid any user can submit is exactly <strong>$1.00 USD</strong>. Bids below $1.00 are rejected by the validation engine.
+              <strong>Minimum Bid:</strong> The lowest bid any user can submit is exactly <strong>$1.50 USD</strong>. Bids below $1.50 are rejected by the validation engine.
+            </li>
+            <li>
+              <strong>Multiples of $1.50:</strong> All bids must be exact multiples of <strong>$1.50 USD</strong> (e.g., $1.50, $3.00, $4.50, $6.00, $7.50, $9.00, $15.00, etc.). Non-multiples (such as arbitrary decimal points or cents) are strictly rejected.
             </li>
             <li>
               <strong>Maximum Bid:</strong> The highest bid any user can submit is <strong>$9,999,999.00 USD</strong>.
             </li>
             <li>
               <strong>Currency:</strong> All bids and payments are denominated and billed in United States Dollars ($ USD).
-            </li>
-            <li>
-              <strong>Precision:</strong> Bids may include cents up to two decimal places (e.g., $1.00, $1.01, $1.42, $4.20, $13.37).
             </li>
           </ul>
         </div>
@@ -71,7 +71,7 @@ export default function TermsPage() {
             <Swords size={18} style={{ color: 'var(--accent-rose)' }} /> 3. The Lowest Unique Bid (LUB) Mechanics
           </h3>
           <p>
-            To prevent gridlock where a single user pays $1.00 and occupies the throne forever, lowestbid.lol operates under the 
+            To prevent gridlock where a single user pays $1.50 and occupies the throne forever, lowestbid.lol operates under the 
             <strong>Lowest Unique Bid</strong> auction model:
           </p>
           <ul>
@@ -79,7 +79,7 @@ export default function TermsPage() {
               <strong>The #1 Crown Spotlight:</strong> The reigning champion featured at the top of the website is the verified entry with the <em>lowest numeric bid amount that is completely unique</em> (i.e., no other participant has bid that exact numerical amount).
             </li>
             <li>
-              <strong>The Duplicate Clash Rule:</strong> If two or more users place a bid for the exact same amount (for example, if Alice bids $1.00 and Bob bids $1.00), both bids immediately <strong>clash</strong>. Clashed bids lose their uniqueness and are disqualified from holding the #1 Crown.
+              <strong>The Duplicate Clash Rule:</strong> If two or more users place a bid for the exact same amount (for example, if Alice bids $1.50 and Bob bids $1.50), both bids immediately <strong>clash</strong>. Clashed bids lose their uniqueness and are disqualified from holding the #1 Crown.
             </li>
             <li>
               <strong>Throne Succession:</strong> When a clash occurs, the #1 Crown Spotlight immediately falls to the next lowest bid that remains unique.
@@ -93,7 +93,7 @@ export default function TermsPage() {
           </ul>
 
           <div className="legal-highlight-box">
-            <strong>Strategy Tip:</strong> Bidding $1.00 is common and frequently clashed. Strategic participants often bid fractional amounts (e.g. $1.07, $1.13, $2.41) to find un-clashed numbers and claim the throne!
+            <strong>Strategy Tip:</strong> Bidding $1.50 is common and frequently clashed. Strategic participants often bid higher uncrowded multiples (e.g. $4.50, $7.50, $10.50) to find un-clashed spots and claim the throne!
           </div>
         </div>
 

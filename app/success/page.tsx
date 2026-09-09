@@ -62,7 +62,7 @@ function SuccessContent() {
 
   const tweetText = encodeURIComponent(
     isChampion
-      ? `👑 I just claimed the #1 SPOT on lowestbid.lol with a winning bid of $${bidDetails?.amount ? bidDetails.amount.toFixed(2) : '1.00'}! Can anyone clash me? Check it out:`
+      ? `👑 I just claimed the #1 SPOT on lowestbid.lol with a winning bid of $${bidDetails?.amount ? bidDetails.amount.toFixed(2) : '1.50'}! Can anyone clash me? Check it out:`
       : `🚀 I just submitted my project to lowestbid.lol! Check out the viral pay-to-rank leaderboard:`
   );
   const shareUrl = `https://twitter.com/intent/tweet?text=${tweetText}&url=${encodeURIComponent('https://lowestbid.lol')}`;

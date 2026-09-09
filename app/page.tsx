@@ -78,10 +78,10 @@ export default function HomePage() {
 
   // Hero Quick Bid Bar state
   const [quickUrl, setQuickUrl] = useState('');
-  const [quickAmount, setQuickAmount] = useState('1.07');
+  const [quickAmount, setQuickAmount] = useState('1.50');
 
   // Modal Form State
-  const [formAmount, setFormAmount] = useState('1.07');
+  const [formAmount, setFormAmount] = useState('1.50');
   const [formTitle, setFormTitle] = useState('');
   const [formUrl, setFormUrl] = useState('');
   const [formMessage, setFormMessage] = useState('');
@@ -269,8 +269,9 @@ export default function HomePage() {
     setSubmitting(true);
 
     const numericAmount = parseFloat(formAmount);
-    if (isNaN(numericAmount) || numericAmount < 1 || numericAmount > 9999999) {
-      setErrorMessage('Bid amount must be between $1.00 and $9,999,999.00');
+    const amountCents = Math.round(numericAmount * 100);
+    if (isNaN(numericAmount) || numericAmount < 1.5 || numericAmount > 9999999 || amountCents % 150 !== 0) {
+      setErrorMessage('Bid amount must be at least $1.50 and an exact multiple of $1.50 (e.g. $1.50, $3.00, $4.50, $6.00)');
       setSubmitting(false);
       return;
     }
@@ -348,7 +349,7 @@ export default function HomePage() {
     }
   };
 
-  const quickChips = ['1.00', '1.07', '1.43', '1.99', '2.50', '5.00'];
+  const quickChips = ['1.50', '3.00', '4.50', '6.00', '7.50', '9.00'];
 
   return (
     <div className="container">
@@ -397,8 +398,7 @@ export default function HomePage() {
         </h1>
 
         <p className="hero-description">
-          Tired of bidding wars where only billionaires win? Bid anywhere from <strong>$1.00+</strong>. 
-          If nobody else bids your exact price, the lowest unique bid claims the #1 spotlight on the internet.
+          Outsmart the whales without breaking the piggy bank. Pick your lucky multiple of <strong>$1.50</strong>, dodge the duplicate drama, and claim the internet’s most unhinged <strong>#1 throne</strong>.
         </p>
 
         {/* Quick Bid Hero Bar (Outbid.lol Style) */}
@@ -418,8 +418,8 @@ export default function HomePage() {
                 <span className="quick-bid-currency">$</span>
                 <input
                   type="number"
-                  step="0.01"
-                  min="1.00"
+                  step="1.50"
+                  min="1.50"
                   max="9999999"
                   className="quick-bid-amount-input"
                   value={quickAmount}
@@ -453,7 +453,7 @@ export default function HomePage() {
           ))}
         </div>
         <p className="quick-chip-hint">
-          💡 Tip: Pick odd decimals like $1.07 or $1.43 to dodge duplicate clashes!
+          💡 Tip: Pick uncrowded multiples like $4.50 or $7.50 to dodge duplicate clashes!
         </p>
       </section>
 
@@ -552,7 +552,7 @@ export default function HomePage() {
               <div className="champion-bid-sub">Winning Unique Bid</div>
               <div className="champion-bid-price">${reigningChampion.amount.toFixed(2)}</div>
               <button
-                onClick={() => handleOpenModal((Math.max(1.00, reigningChampion.amount - 0.01)).toFixed(2))}
+                onClick={() => handleOpenModal((Math.max(1.50, Number((reigningChampion.amount - 1.50).toFixed(2)))).toFixed(2))}
                 className="btn-outbid"
               >
                 Under-bid Now <ArrowUpRight size={13} />
@@ -565,10 +565,10 @@ export default function HomePage() {
           <Crown size={40} className="throne-open-icon" />
           <h2 className="throne-open-title">The #1 Throne is Open!</h2>
           <p className="throne-open-desc">
-            No bids placed yet. Place a bid of $1.00 or higher to instantly claim the #1 spotlight on the internet.
+            No bids placed yet. Place a bid of $1.50 or higher (in multiples of $1.50) to instantly claim the #1 spotlight on the internet.
           </p>
-          <button onClick={() => handleOpenModal('1.00')} className="btn-nav-primary">
-            Claim Crown for $1.00
+          <button onClick={() => handleOpenModal('1.50')} className="btn-nav-primary">
+            Claim Crown for $1.50
           </button>
         </section>
       )}
@@ -629,8 +629,8 @@ export default function HomePage() {
                 <p className="empty-state-desc">
                   Be the first to place an un-clashed bid and take rank #1!
                 </p>
-                <button onClick={() => handleOpenModal('1.00')} className="btn-nav-primary">
-                  Place First Bid ($1.00)
+                <button onClick={() => handleOpenModal('1.50')} className="btn-nav-primary">
+                  Place First Bid ($1.50)
                 </button>
               </div>
             ) : (
@@ -687,9 +687,9 @@ export default function HomePage() {
                       </div>
 
                       <button
-                        onClick={() => handleOpenModal((Math.max(1.00, bid.amount - 0.01)).toFixed(2))}
+                        onClick={() => handleOpenModal((Math.max(1.50, Number((bid.amount - 1.50).toFixed(2)))).toFixed(2))}
                         className="bid-row-action-btn"
-                        title="Bid a lower unique amount"
+                        title="Bid a lower unique multiple of $1.50"
                       >
                         Under-bid
                       </button>
@@ -762,7 +762,7 @@ export default function HomePage() {
                     </div>
 
                     <button
-                      onClick={() => handleOpenModal((bid.amount + 0.01).toFixed(2))}
+                      onClick={() => handleOpenModal((bid.amount + 1.50).toFixed(2))}
                       className="bid-row-action-btn"
                     >
                       Dodge Clash
@@ -835,7 +835,7 @@ export default function HomePage() {
                     </div>
 
                     <button
-                      onClick={() => handleOpenModal((bid.amount + 1.00).toFixed(2))}
+                      onClick={() => handleOpenModal((bid.amount + 1.50).toFixed(2))}
                       className="bid-row-action-btn"
                     >
                       Out-flex
@@ -921,9 +921,9 @@ export default function HomePage() {
             <div className="how-card-icon" style={{ background: 'var(--accent-gold-bg)', color: 'var(--accent-gold)' }}>
               <Crown size={18} />
             </div>
-            <h4>1. Pick Any Amount ($1.00+)</h4>
+            <h4>1. Pick Multiples of $1.50</h4>
             <p>
-              Enter your website URL, product name, and any bid from <strong>$1.00</strong> to <strong>$9,999,999</strong>. No account required.
+              Enter your website URL, product name, and any bid in multiples of <strong>$1.50</strong> ($1.50, $3.00, $4.50...) up to <strong>$9,999,999</strong>. No account required.
             </p>
           </div>
 
@@ -933,7 +933,7 @@ export default function HomePage() {
             </div>
             <h4>2. Avoid Duplicate Clashes</h4>
             <p>
-              If two people bid $1.00, both clash and lose uniqueness! The crown goes to the <strong>lowest unique bid</strong>.
+              If two people bid $1.50, both clash and lose uniqueness! The crown goes to the <strong>lowest unique bid</strong>.
             </p>
           </div>
 
@@ -978,7 +978,7 @@ export default function HomePage() {
           onClick={() => handleOpenModal(quickAmount, quickUrl)}
           className="btn-checkout-primary"
         >
-          <PlusCircle size={17} /> Place a Bid (${parseFloat(quickAmount || '1.07').toFixed(2)})
+          <PlusCircle size={17} /> Place a Bid (${parseFloat(quickAmount || '1.50').toFixed(2)})
         </button>
       </div>
 
@@ -1000,7 +1000,7 @@ export default function HomePage() {
               </span>
               <h3 className="modal-title">Place Your Bid</h3>
               <p className="modal-desc">
-                Min $1.00. Lowest unique bid takes the #1 throne. Live immediately with zero sign up.
+                Min $1.50 (multiples of $1.50). Lowest unique bid takes the #1 throne. Live immediately with zero sign up.
               </p>
             </div>
 
@@ -1045,18 +1045,18 @@ export default function HomePage() {
               <div className="form-group">
                 <div className="form-label-row">
                   <label className="form-label">Your Bid Amount ($ USD)</label>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Min $1.00</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Multiples of $1.50 (min $1.50)</span>
                 </div>
 
                 <div className="input-icon-wrap">
                   <span className="input-amount-prefix">$</span>
                   <input
                     type="number"
-                    step="0.01"
-                    min="1.00"
+                    step="1.50"
+                    min="1.50"
                     max="9999999"
                     className="form-input form-input-amount"
-                    placeholder="1.07"
+                    placeholder="1.50"
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value)}
                     required
@@ -1076,7 +1076,7 @@ export default function HomePage() {
                   ))}
                 </div>
                 <p className="quick-chip-hint" style={{ marginTop: '6px' }}>
-                  💡 Tip: Decimals like $1.07 or $1.43 help dodge duplicate clashes!
+                  💡 Tip: Multiples like $4.50 or $7.50 help dodge duplicate clashes!
                 </p>
               </div>
 
@@ -1126,7 +1126,7 @@ export default function HomePage() {
 
                   <div className="preview-bid-col">
                     <div className="preview-bid-price">
-                      ${parseFloat(formAmount || '1.00').toFixed(2)}
+                      ${parseFloat(formAmount || '1.50').toFixed(2)}
                     </div>
                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
                       Unique Bid
@@ -1228,7 +1228,7 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    <DollarSign size={16} /> Pay ${parseFloat(formAmount || '1.00').toFixed(2)} with Dodo Payments &rarr;
+                    <DollarSign size={16} /> Pay ${parseFloat(formAmount || '1.50').toFixed(2)} with Dodo Payments &rarr;
                   </>
                 )}
               </button>

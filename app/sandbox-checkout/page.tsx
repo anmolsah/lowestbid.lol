@@ -9,7 +9,7 @@ function SandboxCheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const bidId = searchParams.get('bid_id') || '';
-  const amount = searchParams.get('amount') || '1.00';
+  const amount = searchParams.get('amount') || '1.50';
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
