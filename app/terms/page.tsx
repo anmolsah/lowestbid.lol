@@ -90,6 +90,9 @@ export default function TermsPage() {
             <li>
               <strong>Duration:</strong> A bid holds the spotlight until a lower unique bid is placed or another user clashes with the reigning amount.
             </li>
+            <li>
+              <strong>One Listing Per Website (Highest Bid Rule):</strong> Exactly like outbid.lol, each website or handle is represented by only <em>one active entry</em> on the billboard — its highest placed bid. If you re-bid on your website with a different amount, your website never clashes with itself; its previous lower bids are retired, and your highest bid represents you on the board.
+            </li>
           </ul>
 
           <div className="legal-highlight-box">

@@ -352,7 +352,7 @@ export default function HomePage() {
   const quickChips = ['1.50', '3.00', '4.50', '6.00', '7.50', '9.00'];
 
   return (
-    <div className="container">
+    <main className="container">
       {/* Top Header */}
       <header className="nav-header">
         <Link href="/" className="nav-brand">
@@ -367,24 +367,23 @@ export default function HomePage() {
         </Link>
 
         <div className="nav-right">
+          <a
+            href="#how-it-works"
+            className="nav-rules-link"
+          >
+            Rules
+          </a>
+
           <button
             onClick={toggleTheme}
             className="theme-toggle-btn"
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
 
-          <a
-            href="#how-it-works"
-            className="footer-link"
-            style={{ fontSize: '0.85rem', fontWeight: 600, marginRight: '4px' }}
-          >
-            Rules
-          </a>
-
-          <button onClick={() => handleOpenModal()} className="btn-nav-primary">
+          <button id="nav-place-bid-btn" onClick={() => handleOpenModal()} className="btn-nav-primary nav-cta-desktop">
             <PlusCircle size={15} /> Place Bid
           </button>
         </div>
@@ -393,8 +392,8 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="hero-section">
         <h1 className="hero-title">
-          The Pay-to-Rank Billboard where <br />
-          <span className="hero-title-highlight">Lowest Unique Bid</span> Wins.
+          The Pay-to-Rank Billboard <br className="hide-mobile" />
+          Where <span className="hero-title-highlight">Lowest Unique Bid</span> Wins.
         </h1>
 
         <p className="hero-description">
@@ -405,9 +404,12 @@ export default function HomePage() {
         <div className="quick-bid-card">
           <form onSubmit={handleQuickBidSubmit} className="quick-bid-form">
             <input
+              id="quick-bid-url"
+              name="quick_url"
               type="text"
               className="quick-bid-url-input"
               placeholder="Enter your website URL or @handle..."
+              aria-label="Website URL or Twitter username"
               value={quickUrl}
               onChange={(e) => setQuickUrl(e.target.value)}
               required
@@ -417,18 +419,21 @@ export default function HomePage() {
               <div className="quick-bid-amount-wrap">
                 <span className="quick-bid-currency">$</span>
                 <input
+                  id="quick-bid-amount"
+                  name="quick_amount"
                   type="number"
                   step="1.50"
                   min="1.50"
                   max="9999999"
                   className="quick-bid-amount-input"
+                  aria-label="Bid amount in multiples of $1.50"
                   value={quickAmount}
                   onChange={(e) => setQuickAmount(e.target.value)}
                   required
                 />
               </div>
 
-              <button type="submit" className="quick-bid-submit-btn">
+              <button id="quick-bid-submit-btn" type="submit" className="quick-bid-submit-btn" aria-label="Claim Spot on Leaderboard">
                 Claim Spot <ArrowRight size={15} />
               </button>
             </div>
@@ -1024,9 +1029,12 @@ export default function HomePage() {
                 <div className="input-icon-wrap">
                   <Globe size={16} className="input-icon-left" />
                   <input
+                    id="modal-bid-url"
+                    name="url"
                     type="text"
                     className="form-input has-left-icon"
                     placeholder="example.com or @yourhandle"
+                    aria-label="Your destination link or Twitter handle"
                     value={formUrl}
                     onChange={(e) => {
                       setFormUrl(e.target.value);
@@ -1051,12 +1059,15 @@ export default function HomePage() {
                 <div className="input-icon-wrap">
                   <span className="input-amount-prefix">$</span>
                   <input
+                    id="modal-bid-amount"
+                    name="amount"
                     type="number"
                     step="1.50"
                     min="1.50"
                     max="9999999"
                     className="form-input form-input-amount"
                     placeholder="1.50"
+                    aria-label="Your bid amount in USD (multiples of $1.50)"
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value)}
                     required
@@ -1154,10 +1165,13 @@ export default function HomePage() {
                         Custom Project Name / Title
                       </label>
                       <input
+                        id="modal-bid-title"
+                        name="title"
                         type="text"
                         maxLength={50}
                         className="form-input"
                         placeholder="e.g. Acme SaaS"
+                        aria-label="Custom Project Name or Title"
                         value={formTitle}
                         onChange={(e) => setFormTitle(e.target.value)}
                       />
@@ -1171,10 +1185,13 @@ export default function HomePage() {
                         </span>
                       </div>
                       <input
+                        id="modal-bid-pitch"
+                        name="message"
                         type="text"
                         maxLength={140}
                         className="form-input"
                         placeholder="The simplest way to ship products..."
+                        aria-label="Short pitch or tagline"
                         value={formMessage}
                         onChange={(e) => setFormMessage(e.target.value)}
                       />
@@ -1185,10 +1202,13 @@ export default function HomePage() {
                         Twitter / X Handle
                       </label>
                       <input
+                        id="modal-bid-twitter"
+                        name="twitter"
                         type="text"
                         maxLength={30}
                         className="form-input"
                         placeholder="@username"
+                        aria-label="Twitter or X Handle"
                         value={formTwitter}
                         onChange={(e) => setFormTwitter(e.target.value)}
                       />
@@ -1218,6 +1238,7 @@ export default function HomePage() {
 
               {/* High-Impact Checkout Button */}
               <button
+                id="modal-bid-submit-btn"
                 type="submit"
                 disabled={submitting}
                 className="btn-checkout-primary"
@@ -1251,6 +1272,6 @@ export default function HomePage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

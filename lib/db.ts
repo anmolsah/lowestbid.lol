@@ -258,19 +258,95 @@ export async function verifyBidAsync(paymentIdOrBidId: string): Promise<Bid | nu
   return verified;
 }
 
+// Helper to normalize website URLs or Twitter handles into a canonical website key
+export function normalizeWebsiteKey(url: string): string {
+  if (!url) return '';
+  const trimmed = url.trim().toLowerCase();
+
+  // If Twitter / X handle
+  if (trimmed.startsWith('@')) {
+    return trimmed.replace(/^@+/, '@');
+  }
+
+  // If x.com or twitter.com URL (e.g. https://x.com/username)
+  const twitterMatch = trimmed.match(/^(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/([a-z0-9_]+)(?:\/.*)?$/i);
+  if (twitterMatch && twitterMatch[1]) {
+    return `@${twitterMatch[1].toLowerCase()}`;
+  }
+
+  // General website URL
+  try {
+    const withProto = trimmed.startsWith('http://') || trimmed.startsWith('https://')
+      ? trimmed
+      : `https://${trimmed}`;
+    const parsed = new URL(withProto);
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+
+    // For platforms hosting individual user channels or profiles, preserve pathname
+    if (['github.com', 'gitlab.com', 'youtube.com', 'substack.com', 'medium.com', 'linktr.ee'].includes(host)) {
+      const cleanPath = parsed.pathname.replace(/\/+$/, '').toLowerCase();
+      return `${host}${cleanPath}`;
+    }
+    return host;
+  } catch {
+    return trimmed.replace(/^(?:https?:\/\/)?(?:www\.)?/, '').replace(/\/+$/, '');
+  }
+}
+
 // Compute leaderboard logic from any list of bids
 export function computeLeaderboard(allBids: Bid[]) {
   const verified = allBids.filter(b => b.status === 'verified');
 
-  // Count occurrences of each amount (formatted to 2 decimal places)
-  const amountCounts: Record<string, number> = {};
+  // Group verified bids by canonical website key.
+  // Exactly like outbid.lol: A single website has only 1 active listing on the billboard (its highest bid).
+  const websiteGroups: Record<string, Bid[]> = {};
   verified.forEach(b => {
+    const key = normalizeWebsiteKey(b.url);
+    if (!websiteGroups[key]) {
+      websiteGroups[key] = [];
+    }
+    websiteGroups[key].push(b);
+  });
+
+  // For each website, select the highest bid as its active billboard entry,
+  // accumulating total clicks and adopting the latest updated title/message/twitter.
+  const activeWebsiteBids: Bid[] = Object.values(websiteGroups).map(bids => {
+    // Highest bid first; if tied, latest createdAt first
+    const sortedByAmount = [...bids].sort(
+      (a, b) =>
+        b.amount - a.amount ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const highestBid = sortedByAmount[0];
+
+    // Latest bid provides any newer title, pitch, or twitter details
+    const latestBid = [...bids].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+
+    // Sum all clicks accumulated across all bids for this website
+    const totalClicks = bids.reduce((sum, b) => sum + (b.clicks || 0), 0);
+
+    return {
+      ...highestBid,
+      title: latestBid.title || highestBid.title,
+      message: latestBid.message !== undefined ? latestBid.message : highestBid.message,
+      twitter: latestBid.twitter || highestBid.twitter,
+      url: latestBid.url || highestBid.url,
+      clicks: totalClicks,
+    };
+  });
+
+  // Count occurrences of each amount across ACTIVE website listings only
+  // (Prevents ghost clashes with old lower bids from the same website)
+  const amountCounts: Record<string, number> = {};
+  activeWebsiteBids.forEach(b => {
     const key = b.amount.toFixed(2);
     amountCounts[key] = (amountCounts[key] || 0) + 1;
   });
 
-  // Attach uniqueness flag
-  const bidsWithUniqueness: (Bid & { isUnique: boolean; clashCount: number })[] = verified.map(b => {
+  // Attach uniqueness flag to active website listings
+  const bidsWithUniqueness: (Bid & { isUnique: boolean; clashCount: number })[] = activeWebsiteBids.map(b => {
     const key = b.amount.toFixed(2);
     const count = amountCounts[key] || 0;
     return {
@@ -289,7 +365,7 @@ export function computeLeaderboard(allBids: Bid[]) {
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 
-  // Clashed bids (amounts chosen by 2 or more people)
+  // Clashed bids (amounts chosen by 2 or more different websites)
   const clashedBids = bidsWithUniqueness
     .filter(b => !b.isUnique)
     .sort(
@@ -301,19 +377,19 @@ export function computeLeaderboard(allBids: Bid[]) {
   // Reigning champion is the #1 lowest unique bid
   const reigningChampion = uniqueBids.length > 0 ? uniqueBids[0] : null;
 
-  // High Rollers: sorted descending by amount (Whales flexing big bids)
+  // High Rollers: sorted descending by amount (Whales flexing big bids - 1 entry per website)
   const highRollers = [...bidsWithUniqueness].sort(
     (a, b) =>
       b.amount - a.amount ||
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  // Live Chronological Feed
-  const recentFeed = [...bidsWithUniqueness].sort(
+  // Live Chronological Feed: all verified bid events logged chronologically
+  const recentFeed = [...verified].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  // Calculate overall platform stats
+  // Platform statistics
   const totalVolume = verified.reduce((sum, b) => sum + b.amount, 0);
   const totalBids = verified.length;
   const currentLowestUniqueBid = reigningChampion ? reigningChampion.amount : null;

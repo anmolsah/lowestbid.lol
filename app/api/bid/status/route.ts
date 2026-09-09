@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllBidsAsync, verifyBidAsync, getLeaderboardDataAsync } from '@/lib/db';
+import { getAllBidsAsync, verifyBidAsync, getLeaderboardDataAsync, normalizeWebsiteKey } from '@/lib/db';
 import { retrieveCheckoutSession } from '@/lib/dodo';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
     }
 
     const { reigningChampion } = await getLeaderboardDataAsync();
-    const isChampion = reigningChampion ? reigningChampion.id === bid.id : false;
+    const isChampion = reigningChampion
+      ? (reigningChampion.id === bid.id || normalizeWebsiteKey(reigningChampion.url) === normalizeWebsiteKey(bid.url))
+      : false;
 
     return NextResponse.json({
       success: true,
