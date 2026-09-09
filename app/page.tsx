@@ -355,9 +355,13 @@ export default function HomePage() {
       {/* Top Header */}
       <header className="nav-header">
         <Link href="/" className="nav-brand">
-          <div className="nav-logo-icon">
-            <TrendingDown size={20} />
-          </div>
+          <img
+            src="/monogram.png"
+            alt="lowestbid.lol"
+            className="nav-brand-monogram"
+            width={32}
+            height={32}
+          />
           <span className="nav-brand-title">lowestbid.lol</span>
         </Link>
 

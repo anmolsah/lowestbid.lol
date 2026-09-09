@@ -15,20 +15,38 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://lowestbid.lol'),
   title: 'lowestbid.lol — The Anti-Outbid Leaderboard',
   description: 'Bid as low as $1 to claim the #1 spotlight on the internet. The lowest unique bid owns the throne. Secured by Dodo Payments.',
   keywords: ['lowestbid', 'outbid', 'leaderboard', 'pay to rank', 'dodo payments', 'indie hacker', 'viral bidding'],
+  icons: {
+    icon: [
+      { url: '/monogram.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/monogram.png',
+    apple: '/monogram.png',
+  },
   openGraph: {
     title: 'lowestbid.lol — The Anti-Outbid Leaderboard',
     description: 'Can you hold the crown with the lowest unique bid? Bid from $1 to $9,999,999.',
     url: 'https://lowestbid.lol',
     siteName: 'lowestbid.lol',
+    images: [
+      {
+        url: '/icon.png',
+        width: 192,
+        height: 192,
+        alt: 'lowestbid.lol monogram logo',
+      },
+    ],
     type: 'website',
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'lowestbid.lol — The Anti-Outbid Leaderboard',
     description: 'Bid as low as $1 to claim the #1 spotlight. Powered by Dodo Payments.',
+    images: ['/icon.png'],
   },
 };
 
@@ -40,6 +58,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${inter.variable}`}>
       <head>
+        <link rel="icon" type="image/png" href="/monogram.png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/monogram.png" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
