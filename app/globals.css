@@ -698,6 +698,16 @@ h1, h2, h3, h4 {
 .champion-bid-col {
   text-align: right;
   min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.champion-bid-price-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .champion-bid-sub {
@@ -1855,24 +1865,48 @@ h1, h2, h3, h4 {
   }
 
   .champion-bid-col {
-    text-align: left;
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
     border-top: 1px solid var(--border-subtle);
-    padding-top: 12px;
-    margin-top: 4px;
+    padding-top: 16px;
+    margin-top: 14px;
     width: 100%;
+    gap: 16px;
+  }
+
+  .champion-bid-price-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .champion-bid-sub {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 700;
   }
 
   .champion-bid-price {
-    font-size: 1.7rem;
+    font-size: 1.85rem;
+    font-weight: 900;
+    font-family: var(--font-heading);
+    color: var(--accent-gold);
+    line-height: 1;
     margin: 0;
   }
 
   .btn-outbid {
-    padding: 9px 16px;
-    font-size: 0.85rem;
+    padding: 10px 18px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border-radius: var(--radius-xs);
+    flex-shrink: 0;
   }
 
   .throne-open-card {

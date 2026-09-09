@@ -554,8 +554,10 @@ export default function HomePage() {
             </div>
 
             <div className="champion-bid-col">
-              <div className="champion-bid-sub">Winning Unique Bid</div>
-              <div className="champion-bid-price">${reigningChampion.amount.toFixed(2)}</div>
+              <div className="champion-bid-price-block">
+                <div className="champion-bid-sub">Winning Unique Bid</div>
+                <div className="champion-bid-price">${reigningChampion.amount.toFixed(2)}</div>
+              </div>
               <button
                 onClick={() => handleOpenModal((Math.max(1.50, Number((reigningChampion.amount - 1.50).toFixed(2)))).toFixed(2))}
                 className="btn-outbid"
