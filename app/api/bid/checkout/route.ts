@@ -6,9 +6,26 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
     const { title, url, message, twitter, amount, category } = body;
-    const allowedCategories = ['AI Tools', 'Developer Tools', 'Marketing', 'Design', 'Productivity', 'Crypto & Web3', 'Other'];
-    const cleanCategory = (typeof category === 'string' && allowedCategories.includes(category.trim())) ? category.trim() : 'Other';
+    const allowedCategories = [
+      'AI Agents & Infrastructure',
+      'SEO & AI Visibility',
+      'Marketing & Advertising',
+      'Analytics',
+      'Crypto, Web3 & Investing',
+      'Developer Tools',
+      'Business, Finance & Legal',
+      'Security, Privacy & Compliance',
+      'Health, Fitness & Wellness',
+      'Social Media & Creator Tools',
+      'Leaderboards & Attention Markets',
+      'Hiring, Jobs & Careers',
+      'Education & Learning',
+      'Agencies, Studios & Services',
+      'Other',
+    ];
+    const cleanCategory = (typeof category === 'string' && allowedCategories.includes(category.trim())) ? category.trim() : 'AI Agents & Infrastructure';
 
     // Validate amount (must be in multiples of $1.50)
     const parsedAmount = parseFloat(amount);

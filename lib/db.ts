@@ -61,23 +61,39 @@ function toDbRow(bid: Bid) {
 
 export function inferCategory(url: string = '', title: string = '', rawCategory?: string): string {
   if (rawCategory && rawCategory !== 'Other' && rawCategory.trim().length > 0) {
+    if (rawCategory === 'AI Tools') return 'AI Agents & Infrastructure';
     return rawCategory;
   }
   const text = (url + ' ' + title).toLowerCase();
-  if (text.includes('thumbgen') || text.includes('ai') || text.includes('gpt') || text.includes('thumbnail')) {
-    return 'AI Tools';
+  if (text.includes('thumbgen') || text.includes('agent') || text.includes('ai') || text.includes('gpt') || text.includes('bot')) {
+    return 'AI Agents & Infrastructure';
+  }
+  if (text.includes('seo') || text.includes('visibility') || text.includes('rank')) {
+    return 'SEO & AI Visibility';
+  }
+  if (text.includes('marketing') || text.includes('ad') || text.includes('campaign')) {
+    return 'Marketing & Advertising';
+  }
+  if (text.includes('analytics') || text.includes('stats') || text.includes('metrics')) {
+    return 'Analytics';
+  }
+  if (text.includes('crypto') || text.includes('web3') || text.includes('sol') || text.includes('btc') || text.includes('eth')) {
+    return 'Crypto, Web3 & Investing';
   }
   if (text.includes('firstissue') || text.includes('dev') || text.includes('code') || text.includes('git') || text.includes('open source')) {
     return 'Developer Tools';
   }
-  if (text.includes('marketing') || text.includes('seo') || text.includes('growth')) {
-    return 'Marketing';
+  if (text.includes('legal') || text.includes('finance') || text.includes('tax')) {
+    return 'Business, Finance & Legal';
   }
-  if (text.includes('design') || text.includes('ui') || text.includes('ux') || text.includes('figma')) {
-    return 'Design';
+  if (text.includes('security') || text.includes('privacy') || text.includes('auth')) {
+    return 'Security, Privacy & Compliance';
   }
-  if (text.includes('crypto') || text.includes('sol') || text.includes('eth') || text.includes('btc') || text.includes('web3')) {
-    return 'Crypto & Web3';
+  if (text.includes('health') || text.includes('fitness') || text.includes('gym')) {
+    return 'Health, Fitness & Wellness';
+  }
+  if (text.includes('social') || text.includes('creator') || text.includes('x.com') || text.includes('twitter')) {
+    return 'Social Media & Creator Tools';
   }
   return rawCategory || 'Other';
 }

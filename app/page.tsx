@@ -29,6 +29,7 @@ import {
   ChevronUp,
   SlidersHorizontal,
 } from 'lucide-react';
+import CategoryDropdown, { CATEGORY_OPTIONS, getCategoryIcon } from '@/components/CategoryDropdown';
 
 interface BidItem {
   id: string;
@@ -47,13 +48,7 @@ interface BidItem {
 
 const CATEGORIES = [
   'All',
-  'AI Tools',
-  'Developer Tools',
-  'Marketing',
-  'Design',
-  'Productivity',
-  'Crypto & Web3',
-  'Other',
+  ...CATEGORY_OPTIONS.map((c) => c.name),
 ] as const;
 
 interface LeaderboardStats {
@@ -109,12 +104,12 @@ export default function HomePage() {
   // Hero Quick Bid Bar state
   const [quickUrl, setQuickUrl] = useState('');
   const [quickAmount, setQuickAmount] = useState('1.50');
-  const [quickCategory, setQuickCategory] = useState<string>('AI Tools');
+  const [quickCategory, setQuickCategory] = useState<string>('AI Agents & Infrastructure');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Modal Form State
   const [formAmount, setFormAmount] = useState('1.50');
-  const [formCategory, setFormCategory] = useState<string>('AI Tools');
+  const [formCategory, setFormCategory] = useState<string>('AI Agents & Infrastructure');
   const [formTitle, setFormTitle] = useState('');
   const [formUrl, setFormUrl] = useState('');
   const [formMessage, setFormMessage] = useState('');
@@ -405,17 +400,11 @@ export default function HomePage() {
               onChange={(e) => setQuickUrl(e.target.value)}
               required
             />
-            <select
-              className="quick-bid-category-select"
+            <CategoryDropdown
               value={quickCategory}
-              onChange={(e) => setQuickCategory(e.target.value)}
-            >
-              {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              onChange={setQuickCategory}
+              align="right"
+            />
             <button type="submit" className="quick-bid-submit-btn">
               Claim Spot <ArrowRight size={16} />
             </button>
@@ -464,6 +453,7 @@ export default function HomePage() {
         <div className="category-filter-wrap">
           <div className="category-pills-bar">
             {CATEGORIES.map((cat) => {
+              const Icon = cat === 'All' ? Crown : getCategoryIcon(cat);
               const count =
                 cat === 'All'
                   ? uniqueBids.length
@@ -474,6 +464,7 @@ export default function HomePage() {
                   className={`category-pill ${selectedCategory === cat ? 'active' : ''}`}
                   onClick={() => setSelectedCategory(cat)}
                 >
+                  <Icon size={14} strokeWidth={2} />
                   {cat}
                   <span style={{ opacity: 0.7, fontSize: '0.78rem' }}>({count})</span>
                 </button>
@@ -539,9 +530,15 @@ export default function HomePage() {
                             {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                             <ArrowUpRight size={12} />
                           </a>
-                          {bid.category && (
-                            <span className="bid-category-badge">{bid.category}</span>
-                          )}
+                          {bid.category && (() => {
+                            const CatIcon = getCategoryIcon(bid.category);
+                            return (
+                              <span className="bid-category-badge">
+                                <CatIcon size={12} strokeWidth={2} style={{ marginRight: 4 }} />
+                                {bid.category}
+                              </span>
+                            );
+                          })()}
                           <span className="bid-clicks-tag">
                             <MousePointerClick size={12} /> {(bid.clicks || 0).toLocaleString()}
                           </span>
@@ -694,18 +691,13 @@ export default function HomePage() {
 
               <div className="form-group">
                 <label className="form-label">Category</label>
-                <select
-                  className="form-input"
+                <CategoryDropdown
                   value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setFormCategory}
+                  align="left"
+                  className="w-full"
+                  buttonClassName="modal-category-trigger"
+                />
               </div>
 
               <div className="form-group">
