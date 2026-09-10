@@ -6,8 +6,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { title, url, message, twitter, amount } = body;
+    const { title, url, message, twitter, amount, category } = body;
+    const allowedCategories = ['AI Tools', 'Developer Tools', 'Marketing', 'Design', 'Productivity', 'Crypto & Web3', 'Other'];
+    const cleanCategory = (typeof category === 'string' && allowedCategories.includes(category.trim())) ? category.trim() : 'Other';
 
     // Validate amount (must be in multiples of $1.50)
     const parsedAmount = parseFloat(amount);
@@ -107,6 +108,7 @@ export async function POST(req: Request) {
       url: formattedUrl,
       message: cleanMessage,
       twitter: cleanTwitter,
+      category: cleanCategory,
       createdAt: new Date().toISOString(),
       status: 'pending',
       paymentId: checkout.sessionId,

@@ -259,9 +259,9 @@ h1, h2, h3, h4 {
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-full);
-  padding: 8px;
+  padding: 6px 8px 6px 14px;
   box-shadow: var(--shadow-md);
-  max-width: 600px;
+  max-width: 680px;
   margin: 0 auto;
   transition: all 200ms ease;
   display: flex;
@@ -285,8 +285,8 @@ h1, h2, h3, h4 {
   flex: 1;
   background: transparent;
   border: none;
-  padding: 14px 20px;
-  font-size: 1.05rem;
+  padding: 12px 14px;
+  font-size: 1rem;
   color: var(--text-main);
   outline: none;
   min-width: 0;
@@ -296,13 +296,31 @@ h1, h2, h3, h4 {
   color: var(--text-muted);
 }
 
+.quick-bid-category-select {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  padding: 10px 14px;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 150ms ease;
+}
+
+.quick-bid-category-select:focus {
+  border-color: var(--accent-primary);
+}
+
 .quick-bid-submit-btn {
   background: var(--accent-primary);
   color: #fff;
   border: none;
   border-radius: var(--radius-full);
-  padding: 14px 24px;
-  font-size: 1rem;
+  padding: 12px 22px;
+  font-size: 0.95rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -310,10 +328,72 @@ h1, h2, h3, h4 {
   cursor: pointer;
   white-space: nowrap;
   transition: all 150ms ease;
+  flex-shrink: 0;
 }
 
 .quick-bid-submit-btn:hover {
   background: var(--accent-primary-hover);
+}
+
+/* Category Filter Bar (like outbid.lol) */
+.category-filter-wrap {
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.category-filter-wrap::-webkit-scrollbar {
+  display: none;
+}
+
+.category-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: max-content;
+}
+
+.category-pill {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 7px 16px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.category-pill:hover {
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.category-pill.active {
+  background: var(--accent-primary);
+  color: #fff;
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.bid-category-badge {
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 2px 9px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Stats Strip */
@@ -934,19 +1014,40 @@ h1, h2, h3, h4 {
     font-size: 2.25rem;
   }
   
+  .quick-bid-card {
+    border-radius: 20px;
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  
   .quick-bid-form {
     flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
   }
   
   .quick-bid-url-input {
     width: 100%;
-    border-bottom: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    background: var(--bg-surface-elevated);
+    padding: 12px 14px;
+    font-size: 0.95rem;
+  }
+  
+  .quick-bid-category-select {
+    width: 100%;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
   }
   
   .quick-bid-submit-btn {
     width: 100%;
+    border-radius: 12px;
+    padding: 14px 20px;
     justify-content: center;
+    font-size: 1rem;
   }
 
   .bid-card-row {

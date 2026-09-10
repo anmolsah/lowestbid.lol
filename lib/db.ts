@@ -11,6 +11,7 @@ export interface Bid {
   url: string;
   message: string;
   twitter?: string;
+  category?: string;
   createdAt: string;
   status: 'pending' | 'verified';
   paymentId?: string;
@@ -50,11 +51,35 @@ function toDbRow(bid: Bid) {
     url: bid.url,
     message: bid.message || '',
     twitter: bid.twitter || null,
+    category: bid.category || 'Other',
     status: bid.status,
     payment_id: bid.paymentId || null,
     clicks: bid.clicks || 0,
     created_at: bid.createdAt || new Date().toISOString(),
   };
+}
+
+export function inferCategory(url: string = '', title: string = '', rawCategory?: string): string {
+  if (rawCategory && rawCategory !== 'Other' && rawCategory.trim().length > 0) {
+    return rawCategory;
+  }
+  const text = (url + ' ' + title).toLowerCase();
+  if (text.includes('thumbgen') || text.includes('ai') || text.includes('gpt') || text.includes('thumbnail')) {
+    return 'AI Tools';
+  }
+  if (text.includes('firstissue') || text.includes('dev') || text.includes('code') || text.includes('git') || text.includes('open source')) {
+    return 'Developer Tools';
+  }
+  if (text.includes('marketing') || text.includes('seo') || text.includes('growth')) {
+    return 'Marketing';
+  }
+  if (text.includes('design') || text.includes('ui') || text.includes('ux') || text.includes('figma')) {
+    return 'Design';
+  }
+  if (text.includes('crypto') || text.includes('sol') || text.includes('eth') || text.includes('btc') || text.includes('web3')) {
+    return 'Crypto & Web3';
+  }
+  return rawCategory || 'Other';
 }
 
 function fromDbRow(row: any): Bid {
@@ -66,6 +91,7 @@ function fromDbRow(row: any): Bid {
     url: row.url,
     message: row.message || '',
     twitter: row.twitter || undefined,
+    category: inferCategory(row.url, row.title, row.category),
     status: row.status,
     paymentId: row.payment_id || undefined,
     clicks: row.clicks || 0,
@@ -96,29 +122,30 @@ function ensureDataFile() {
 
 // Read raw bids from JSON with in-memory fallback
 export function getAllBids(): Bid[] {
-  if (globalForBids.bidsCache && globalForBids.bidsCache.length > 0) {
-    return globalForBids.bidsCache;
-  }
-
   ensureDataFile();
   try {
+    let parsed: Bid[] = [];
     if (fs.existsSync(DB_FILE)) {
       const raw = fs.readFileSync(DB_FILE, 'utf8');
-      const parsed = JSON.parse(raw) as Bid[];
-      globalForBids.bidsCache = parsed;
-      return parsed;
-    }
-    if (fs.existsSync(SEED_FILE)) {
+      parsed = JSON.parse(raw) as Bid[];
+    } else if (fs.existsSync(SEED_FILE)) {
       const raw = fs.readFileSync(SEED_FILE, 'utf8');
-      const parsed = JSON.parse(raw) as Bid[];
-      globalForBids.bidsCache = parsed;
-      return parsed;
+      parsed = JSON.parse(raw) as Bid[];
     }
+    const withInferred = parsed.map(b => ({
+      ...b,
+      category: inferCategory(b.url, b.title, b.category),
+    }));
+    globalForBids.bidsCache = withInferred;
+    return withInferred;
   } catch (err) {
     console.error('Error reading bids DB:', err);
   }
 
-  return globalForBids.bidsCache || [];
+  return (globalForBids.bidsCache || []).map(b => ({
+    ...b,
+    category: inferCategory(b.url, b.title, b.category),
+  }));
 }
 
 // Asynchronously read bids from Supabase if configured, with local fallback
@@ -184,9 +211,14 @@ export async function upsertBidAsync(bid: Bid): Promise<void> {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        const { error } = await supabase.from('bids').upsert(toDbRow(bid));
+        const dbRow = toDbRow(bid);
+        const { error } = await supabase.from('bids').upsert(dbRow);
         if (error) {
           console.error('Failed to upsert bid in Supabase:', error.message);
+          if (error.message && error.message.includes('category')) {
+            const { category: _cat, ...rowWithoutCat } = dbRow;
+            await supabase.from('bids').upsert(rowWithoutCat);
+          }
         }
       } catch (err) {
         console.error('Error connecting to Supabase during upsert:', err);
@@ -332,6 +364,7 @@ export function computeLeaderboard(allBids: Bid[]) {
       title: latestBid.title || highestBid.title,
       message: latestBid.message !== undefined ? latestBid.message : highestBid.message,
       twitter: latestBid.twitter || highestBid.twitter,
+      category: inferCategory(highestBid.url, highestBid.title, latestBid.category || highestBid.category),
       url: latestBid.url || highestBid.url,
       clicks: totalClicks,
     };
@@ -356,33 +389,27 @@ export function computeLeaderboard(allBids: Bid[]) {
     };
   });
 
-  // Unique bids sorted ascending by amount (Lowest Unique Bids)
-  const uniqueBids = bidsWithUniqueness
-    .filter(b => b.isUnique)
-    .sort(
-      (a, b) =>
-        a.amount - b.amount ||
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+  // Leaderboard ranking: sorted descending by amount (Highest Bidder is Rank #1)
+  const rankedBids = [...bidsWithUniqueness].sort(
+    (a, b) =>
+      b.amount - a.amount ||
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  // Reigning champion is the #1 highest bidder
+  const reigningChampion = rankedBids.length > 0 ? rankedBids[0] : null;
 
   // Clashed bids (amounts chosen by 2 or more different websites)
   const clashedBids = bidsWithUniqueness
     .filter(b => !b.isUnique)
     .sort(
       (a, b) =>
-        a.amount - b.amount ||
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        b.amount - a.amount ||
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 
-  // Reigning champion is the #1 lowest unique bid
-  const reigningChampion = uniqueBids.length > 0 ? uniqueBids[0] : null;
-
-  // High Rollers: sorted descending by amount (Whales flexing big bids - 1 entry per website)
-  const highRollers = [...bidsWithUniqueness].sort(
-    (a, b) =>
-      b.amount - a.amount ||
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  // High Rollers: sorted descending by amount (1 entry per website)
+  const highRollers = [...rankedBids];
 
   // Live Chronological Feed: all verified bid events logged chronologically
   const recentFeed = [...verified].sort(
@@ -398,15 +425,15 @@ export function computeLeaderboard(allBids: Bid[]) {
   const stats: LeaderboardStats = {
     totalVolume: Math.round(totalVolume * 100) / 100,
     totalBids,
-    currentLowestUniqueBid,
+    currentLowestUniqueBid: reigningChampion ? reigningChampion.amount : null,
     clashedCount: clashedBids.length,
     highestBid,
-    uniqueBidsCount: uniqueBids.length,
+    uniqueBidsCount: rankedBids.length,
   };
 
   return {
     reigningChampion,
-    uniqueBids,
+    uniqueBids: rankedBids,
     clashedBids,
     highRollers,
     recentFeed,

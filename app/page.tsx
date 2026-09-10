@@ -37,12 +37,24 @@ interface BidItem {
   url: string;
   message: string;
   twitter?: string;
+  category?: string;
   createdAt: string;
   status: 'pending' | 'verified';
   isUnique?: boolean;
   clashCount?: number;
   clicks?: number;
 }
+
+const CATEGORIES = [
+  'All',
+  'AI Tools',
+  'Developer Tools',
+  'Marketing',
+  'Design',
+  'Productivity',
+  'Crypto & Web3',
+  'Other',
+] as const;
 
 interface LeaderboardStats {
   totalVolume: number;
@@ -97,9 +109,12 @@ export default function HomePage() {
   // Hero Quick Bid Bar state
   const [quickUrl, setQuickUrl] = useState('');
   const [quickAmount, setQuickAmount] = useState('1.50');
+  const [quickCategory, setQuickCategory] = useState<string>('AI Tools');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Modal Form State
   const [formAmount, setFormAmount] = useState('1.50');
+  const [formCategory, setFormCategory] = useState<string>('AI Tools');
   const [formTitle, setFormTitle] = useState('');
   const [formUrl, setFormUrl] = useState('');
   const [formMessage, setFormMessage] = useState('');
@@ -257,10 +272,15 @@ export default function HomePage() {
     }
   };
 
-  const handleOpenModal = (presetAmount?: string, presetUrl?: string) => {
+  const handleOpenModal = (presetAmount?: string, presetUrl?: string, presetCategory?: string) => {
     if (presetAmount) {
       setFormAmount(presetAmount);
       setQuickAmount(presetAmount);
+    }
+    if (presetCategory) {
+      setFormCategory(presetCategory);
+    } else if (quickCategory) {
+      setFormCategory(quickCategory);
     }
     const targetUrl = presetUrl !== undefined ? presetUrl : quickUrl;
     if (targetUrl) {
@@ -275,7 +295,7 @@ export default function HomePage() {
 
   const handleQuickBidSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleOpenModal(quickAmount, quickUrl);
+    handleOpenModal(quickAmount, quickUrl, quickCategory);
   };
 
   const handleBidSubmit = async (e: React.FormEvent) => {
@@ -322,6 +342,7 @@ export default function HomePage() {
           url: targetUrl,
           message: formMessage.trim(),
           twitter: formTwitter.trim(),
+          category: formCategory,
         }),
       });
 
@@ -370,7 +391,7 @@ export default function HomePage() {
           Claim the <span className="hero-title-highlight">#1 Spot</span> on the Internet
         </h1>
         <p className="hero-description">
-          The public billboard where the <strong>lowest unique bid</strong> wins. Place your bid in multiples of $1.50. Dodge duplicates to hold the crown.
+          The public billboard where the <strong>highest bid</strong> claims the spotlight. Outbid the leader to claim the #1 rank.
         </p>
 
         <div className="quick-bid-card">
@@ -384,6 +405,17 @@ export default function HomePage() {
               onChange={(e) => setQuickUrl(e.target.value)}
               required
             />
+            <select
+              className="quick-bid-category-select"
+              value={quickCategory}
+              onChange={(e) => setQuickCategory(e.target.value)}
+            >
+              {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
             <button type="submit" className="quick-bid-submit-btn">
               Claim Spot <ArrowRight size={16} />
             </button>
@@ -394,9 +426,9 @@ export default function HomePage() {
       {/* Stats */}
       <div className="stats-strip">
         <div className="stat-item">
-          <div className="stat-label">Winning Bid</div>
+          <div className="stat-label">Top Bid</div>
           <div className="stat-val stat-val-coral">
-            {stats.currentLowestUniqueBid ? `$${stats.currentLowestUniqueBid.toFixed(2)}` : 'None'}
+            ${stats.highestBid ? stats.highestBid.toFixed(2) : (reigningChampion ? reigningChampion.amount.toFixed(2) : (uniqueBids[0]?.amount?.toFixed(2) || '1.50'))}
           </div>
         </div>
         <div className="stat-item">
@@ -428,21 +460,56 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Tab: Unique Bids (Leaderboard) */}
+        {/* Category Filter Pills Bar (like outbid.lol) */}
+        <div className="category-filter-wrap">
+          <div className="category-pills-bar">
+            {CATEGORIES.map((cat) => {
+              const count =
+                cat === 'All'
+                  ? uniqueBids.length
+                  : uniqueBids.filter((b) => (b.category || 'Other') === cat).length;
+              return (
+                <button
+                  key={cat}
+                  className={`category-pill ${selectedCategory === cat ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat}
+                  <span style={{ opacity: 0.7, fontSize: '0.78rem' }}>({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tab: Leaderboard */}
         {activeTab === 'unique' && (
           <div className="leaderboard-list">
-            {uniqueBids.length === 0 ? (
-              <div className="empty-state-box">
-                <Crown size={40} className="empty-state-icon" />
-                <h3 className="empty-state-title">The Throne is Open</h3>
-                <p className="empty-state-desc">Place any unique bid to claim #1 instantly.</p>
-                <button onClick={() => handleOpenModal('1.50')} className="btn-nav-primary">
-                  Claim Spot for $1.50
-                </button>
-              </div>
-            ) : (
-              uniqueBids.map((bid, index) => {
-                const isWinner = index === 0;
+            {(() => {
+              const filteredList =
+                selectedCategory === 'All'
+                  ? uniqueBids
+                  : uniqueBids.filter((b) => (b.category || 'Other') === selectedCategory);
+
+              if (filteredList.length === 0) {
+                return (
+                  <div className="empty-state-box">
+                    <Crown size={40} className="empty-state-icon" />
+                    <h3 className="empty-state-title">No Listings in {selectedCategory}</h3>
+                    <p className="empty-state-desc">Be the first to claim #1 in {selectedCategory}!</p>
+                    <button
+                      onClick={() => handleOpenModal('1.50', undefined, selectedCategory !== 'All' ? selectedCategory : 'AI Tools')}
+                      className="btn-nav-primary"
+                    >
+                      Claim Spot for $1.50
+                    </button>
+                  </div>
+                );
+              }
+
+              return filteredList.map((bid, index) => {
+                const isWinner = index === 0 && selectedCategory === 'All';
+                const nextOutbidAmount = (bid.amount + 1.50).toFixed(2);
                 return (
                   <div key={bid.id} className={`bid-card-row ${isWinner ? 'is-winner' : ''}`}>
                     <div className="bid-left-col">
@@ -452,7 +519,14 @@ export default function HomePage() {
                       <div className="bid-info">
                         <div className="bid-header-line">
                           {bid.url && (
-                            <img src={getFaviconUrl(bid.url)} alt="" className="preview-favicon-img" onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }} />
+                            <img
+                              src={getFaviconUrl(bid.url)}
+                              alt=""
+                              className="preview-favicon-img"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                              }}
+                            />
                           )}
                           <span className="bid-title">{bid.title}</span>
                           <a
@@ -465,6 +539,9 @@ export default function HomePage() {
                             {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                             <ArrowUpRight size={12} />
                           </a>
+                          {bid.category && (
+                            <span className="bid-category-badge">{bid.category}</span>
+                          )}
                           <span className="bid-clicks-tag">
                             <MousePointerClick size={12} /> {(bid.clicks || 0).toLocaleString()}
                           </span>
@@ -477,16 +554,17 @@ export default function HomePage() {
                         ${bid.amount.toFixed(2)}
                       </div>
                       <button
-                        onClick={() => handleOpenModal((Math.max(1.50, Number((bid.amount - 1.50).toFixed(2)))).toFixed(2))}
+                        onClick={() => handleOpenModal(nextOutbidAmount, undefined, bid.category)}
                         className="bid-row-action-btn"
+                        title={`Outbid with $${nextOutbidAmount}`}
                       >
-                        Under-bid
+                        Outbid
                       </button>
                     </div>
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         )}
 
@@ -541,21 +619,21 @@ export default function HomePage() {
           <div className="how-step">
             <div className="how-step-num">1</div>
             <div className="how-step-content">
-              <h4>Lowest Unique Bid Wins</h4>
-              <p>Pick any amount in multiples of $1.50. If you have the lowest bid that nobody else picked, you take the #1 spot.</p>
+              <h4>Highest Bid Claims #1</h4>
+              <p>Place your bid in multiples of $1.50. The highest active bid holds the #1 crown on the billboard.</p>
             </div>
           </div>
           <div className="how-step">
             <div className="how-step-num">2</div>
             <div className="how-step-content">
-              <h4>Clash & Lose</h4>
-              <p>If two people bid the exact same amount, both lose their uniqueness and get pushed off the leaderboard.</p>
+              <h4>Targeted Categories</h4>
+              <p>Categorize your website or product to get discovered by visitors browsing specific niche categories.</p>
             </div>
           </div>
           <div className="how-step">
             <div className="how-step-num">3</div>
             <div className="how-step-content">
-              <h4>Instant Traffic</h4>
+              <h4>Instant Live Traffic</h4>
               <p>Checkout securely with Dodo Payments. Your link goes live immediately with real-time unique click tracking.</p>
             </div>
           </div>
@@ -612,6 +690,22 @@ export default function HomePage() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Category</label>
+                <select
+                  className="form-input"
+                  value={formCategory}
+                  onChange={(e) => setFormCategory(e.target.value)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">
