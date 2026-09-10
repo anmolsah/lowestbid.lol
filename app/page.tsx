@@ -78,6 +78,32 @@ function normalizeDomain(url: string): string {
   }
 }
 
+function formatTimeAgo(dateStr: string): string {
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours < 1) return 'just now';
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks === 1) return '1 week ago';
+    return `${diffWeeks} weeks ago`;
+  } catch {
+    return 'recently';
+  }
+}
+
+function formatDomain(url: string): string {
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return parsed.hostname.replace(/^www\./, '');
+  } catch {
+    return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  }
+}
+
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'unique' | 'clashed' | 'whales' | 'feed'>('unique');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -501,62 +527,83 @@ export default function HomePage() {
               return filteredList.map((bid, index) => {
                 const isWinner = index === 0 && selectedCategory === 'All';
                 const nextOutbidAmount = (bid.amount + 1.50).toFixed(2);
+                const CatIcon = getCategoryIcon(bid.category || 'Other');
+                const displayCategory = bid.category ? bid.category.split('&')[0].trim() : 'General';
                 return (
-                  <div key={bid.id} className={`bid-card-row ${isWinner ? 'is-winner' : ''}`}>
-                    <div className="bid-left-col">
-                      <div className={`bid-rank-badge ${isWinner ? 'rank-1' : ''}`}>
-                        {isWinner ? '👑' : `#${index + 1}`}
-                      </div>
-                      <div className="bid-info">
-                        <div className="bid-header-line">
-                          {bid.url && (
-                            <img
-                              src={getFaviconUrl(bid.url)}
-                              alt=""
-                              className="preview-favicon-img"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <span className="bid-title">{bid.title}</span>
-                          <a
-                            href={bid.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bid-domain-link"
-                            onClick={(e) => handleTrackClick(bid.id, bid.url, e)}
-                          >
-                            {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                            <ArrowUpRight size={12} />
-                          </a>
-                          {bid.category && (() => {
-                            const CatIcon = getCategoryIcon(bid.category);
-                            return (
-                              <span className="bid-category-badge">
-                                <CatIcon size={12} strokeWidth={2} style={{ marginRight: 4 }} />
-                                {bid.category}
-                              </span>
-                            );
-                          })()}
-                          <span className="bid-clicks-tag">
-                            <MousePointerClick size={12} /> {(bid.clicks || 0).toLocaleString()}
+                  <div key={bid.id} className={`outbid-card ${isWinner ? 'is-winner' : ''}`}>
+                    {/* Left Icon Squircle */}
+                    <div className="outbid-card-avatar">
+                      {bid.url ? (
+                        <img
+                          src={getFaviconUrl(bid.url)}
+                          alt=""
+                          className="outbid-avatar-img"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <CatIcon size={24} className="outbid-avatar-fallback" />
+                      )}
+                    </div>
+
+                    {/* Main Content Column */}
+                    <div className="outbid-card-content">
+                      {/* Top Row: Rank + Title + Price */}
+                      <div className="outbid-card-top-row">
+                        <div className="outbid-title-wrap">
+                          <span className="outbid-rank-num">#{index + 1}</span>
+                          <span className="outbid-title-text" title={bid.title}>
+                            {bid.title}
                           </span>
                         </div>
-                        {bid.message && <p className="bid-pitch-text">{bid.message}</p>}
+                        <div className="outbid-price-tag">
+                          ${bid.amount.toFixed(2)}
+                        </div>
                       </div>
-                    </div>
-                    <div className="bid-right-col">
-                      <div className={`bid-price-num ${isWinner ? 'gold' : ''}`}>
-                        ${bid.amount.toFixed(2)}
+
+                      {/* Middle Row: Tagline/Message */}
+                      {bid.message && (
+                        <p className="outbid-card-desc" title={bid.message}>
+                          {bid.message}
+                        </p>
+                      )}
+
+                      {/* Bottom Meta Row */}
+                      <div className="outbid-card-meta-row">
+                        {bid.category && (
+                          <>
+                            <span className="outbid-meta-item outbid-category-meta">
+                              <CatIcon size={12} strokeWidth={2} />
+                              {displayCategory}
+                            </span>
+                            <span className="outbid-meta-dot">·</span>
+                          </>
+                        )}
+                        <span className="outbid-meta-item">{formatTimeAgo(bid.createdAt)}</span>
+                        <span className="outbid-meta-dot">·</span>
+                        <a
+                          href={bid.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="outbid-meta-link"
+                          onClick={(e) => handleTrackClick(bid.id, bid.url, e)}
+                        >
+                          {formatDomain(bid.url)}
+                        </a>
+                        <span className="outbid-meta-dot">·</span>
+                        <span className="outbid-meta-item">
+                          {(bid.clicks || 0).toLocaleString()} clicks
+                        </span>
+                        <span className="outbid-meta-dot">·</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal(nextOutbidAmount, undefined, bid.category)}
+                          className="outbid-action-link"
+                        >
+                          Outbid
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleOpenModal(nextOutbidAmount, undefined, bid.category)}
-                        className="bid-row-action-btn"
-                        title={`Outbid with $${nextOutbidAmount}`}
-                      >
-                        Outbid
-                      </button>
                     </div>
                   </div>
                 );
@@ -575,66 +622,54 @@ export default function HomePage() {
                 <p className="empty-state-desc">All bids are unique. Clashed bids appear here.</p>
               </div>
             ) : (
-              clashedBids.map((bid) => (
-                <div key={bid.id} className="bid-card-row is-clashed">
-                  <div className="bid-left-col">
-                    <div className="bid-rank-badge"><Swords size={20} /></div>
-                    <div className="bid-info">
-                      <div className="bid-header-line">
-                        {bid.url && <img src={getFaviconUrl(bid.url)} alt="" className="preview-favicon-img" onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }} />}
-                        <span className="bid-title">{bid.title}</span>
+              clashedBids.map((bid) => {
+                return (
+                  <div key={bid.id} className="outbid-card is-clashed">
+                    <div
+                      className="outbid-card-avatar"
+                      style={{ background: 'var(--accent-primary-bg)', color: 'var(--accent-primary)' }}
+                    >
+                      <Swords size={22} />
+                    </div>
+                    <div className="outbid-card-content">
+                      <div className="outbid-card-top-row">
+                        <div className="outbid-title-wrap">
+                          <span className="outbid-title-text" title={bid.title}>
+                            {bid.title}
+                          </span>
+                        </div>
+                        <div className="outbid-price-tag coral">${bid.amount.toFixed(2)}</div>
+                      </div>
+                      <div className="outbid-card-meta-row">
+                        <span className="outbid-meta-item" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+                          Duplicate ({bid.clashCount} bids)
+                        </span>
+                        <span className="outbid-meta-dot">·</span>
                         <a
                           href={bid.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bid-domain-link"
+                          className="outbid-meta-link"
                           onClick={(e) => handleTrackClick(bid.id, bid.url, e)}
                         >
-                          {bid.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} <ArrowUpRight size={12} />
+                          {formatDomain(bid.url)}
                         </a>
+                        <span className="outbid-meta-dot">·</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal((bid.amount + 1.50).toFixed(2), undefined, bid.category)}
+                          className="outbid-action-link"
+                        >
+                          Dodge Clash
+                        </button>
                       </div>
-                      <span className="bid-status-pill pill-clashed">Duplicate ({bid.clashCount} bids)</span>
                     </div>
                   </div>
-                  <div className="bid-right-col">
-                    <div className="bid-price-num coral">${bid.amount.toFixed(2)}</div>
-                    <button onClick={() => handleOpenModal((bid.amount + 1.50).toFixed(2))} className="bid-row-action-btn">
-                      Dodge Clash
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
-      </section>
-
-      {/* Rules Section */}
-      <section className="how-section">
-        <h3 className="how-section-title">How It Works</h3>
-        <div className="how-steps-container">
-          <div className="how-step">
-            <div className="how-step-num">1</div>
-            <div className="how-step-content">
-              <h4>Highest Bid Claims #1</h4>
-              <p>Place your bid in multiples of $1.50. The highest active bid holds the #1 crown on the billboard.</p>
-            </div>
-          </div>
-          <div className="how-step">
-            <div className="how-step-num">2</div>
-            <div className="how-step-content">
-              <h4>Targeted Categories</h4>
-              <p>Categorize your website or product to get discovered by visitors browsing specific niche categories.</p>
-            </div>
-          </div>
-          <div className="how-step">
-            <div className="how-step-num">3</div>
-            <div className="how-step-content">
-              <h4>Instant Live Traffic</h4>
-              <p>Checkout securely with Dodo Payments. Your link goes live immediately with real-time unique click tracking.</p>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* Footer */}

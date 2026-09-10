@@ -900,75 +900,180 @@ h1, h2, h3, h4 {
   margin-bottom: 24px;
 }
 
-/* Rules Section */
-.how-section {
-  padding: 60px 0;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.how-section-title {
-  text-align: center;
-  font-size: 2rem;
-  margin-bottom: 40px;
-}
-
-.how-steps-container {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.how-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-}
-
-.how-step-num {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-full);
+/* Outbid.lol Style Cards */
+.outbid-card {
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
-  color: var(--text-main);
+  border-radius: 22px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  font-family: var(--font-heading);
-  font-weight: 800;
-  flex-shrink: 0;
+  gap: 16px;
+  transition: all 180ms ease;
   position: relative;
 }
 
-/* Connecting line */
-.how-step:not(:last-child) .how-step-num::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  height: calc(32px + 24px); /* Gap + some extra */
-  background: var(--border-subtle);
-  z-index: -1;
+.outbid-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
-.how-step-content {
-  padding-top: 8px;
+.outbid-card.is-winner {
+  background: rgba(224, 99, 70, 0.08);
+  border-color: rgba(224, 99, 70, 0.28);
 }
 
-.how-step-content h4 {
-  font-size: 1.2rem;
-  margin-bottom: 8px;
+[data-theme="dark"] .outbid-card.is-winner {
+  background: rgba(224, 99, 70, 0.14);
+  border-color: rgba(224, 99, 70, 0.35);
 }
 
-.how-step-content p {
+.outbid-card-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: #111010;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .outbid-card-avatar {
+  background: #242220;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.outbid-avatar-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.outbid-avatar-fallback {
+  color: #fff;
+}
+
+.outbid-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.outbid-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.outbid-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.outbid-rank-num {
+  color: var(--accent-primary);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.outbid-title-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outbid-price-tag {
+  color: var(--accent-primary);
+  font-weight: 800;
+  font-size: 1.05rem;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
+}
+
+.outbid-price-tag.coral {
+  color: var(--accent-primary);
+}
+
+.outbid-card-desc {
+  font-size: 0.85rem;
   color: var(--text-secondary);
-  line-height: 1.6;
-  font-size: 1rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.outbid-card-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.outbid-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.outbid-category-meta {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.outbid-meta-dot {
+  opacity: 0.5;
+}
+
+.outbid-meta-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 150ms ease;
+}
+
+.outbid-meta-link:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
+.outbid-action-link {
+  background: none;
+  border: none;
+  color: var(--accent-primary);
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.outbid-action-link:hover {
+  color: var(--accent-primary-hover);
+  text-decoration: underline;
 }
 
 /* Modal Checkout Style */
@@ -1261,6 +1366,40 @@ h1, h2, h3, h4 {
     padding: 14px 20px;
     justify-content: center;
     font-size: 1rem;
+  }
+
+  .outbid-card {
+    padding: 12px 14px;
+    gap: 12px;
+    border-radius: 18px;
+  }
+
+  .outbid-card-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .outbid-avatar-img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .outbid-title-text {
+    font-size: 0.92rem;
+  }
+
+  .outbid-price-tag {
+    font-size: 0.95rem;
+  }
+
+  .outbid-card-desc {
+    font-size: 0.8rem;
+  }
+
+  .outbid-card-meta-row {
+    font-size: 0.74rem;
+    gap: 4px;
   }
 
   .bid-card-row {
