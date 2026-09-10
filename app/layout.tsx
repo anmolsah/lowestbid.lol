@@ -16,22 +16,22 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://lowestbid.lol'),
-  title: 'lowestbid.lol — The Anti-Outbid Billboard Leaderboard',
-  description: 'Outsmart the whales without breaking the piggy bank. Pick your lucky multiple of $1.50, dodge the duplicate drama, and claim the internet’s most unhinged #1 throne.',
+  title: 'lowestbid.lol — Claim the #1 Spot on the Internet',
+  description: 'The viral pay-to-rank link leaderboard. Highest bidder takes the #1 throne, drives real traffic, and outbids the competition in real time.',
   keywords: [
     'lowestbid',
     'lowestbid lol',
     'outbid alternative',
-    'lowest unique bid auction',
     'pay to rank leaderboard',
+    'link billboard',
     'indie hacker promotion',
     'viral billboard game',
     'dodo payments',
     'website traffic billboard',
     'micro advertising game',
   ],
-  authors: [{ name: 'lowestbid.lol' }],
-  creator: 'lowestbid.lol',
+  authors: [{ name: '@anni_i29' }],
+  creator: '@anni_i29',
   publisher: 'lowestbid.lol',
   alternates: {
     canonical: 'https://lowestbid.lol',
@@ -56,8 +56,8 @@ export const metadata: Metadata = {
     apple: '/monogram.png',
   },
   openGraph: {
-    title: 'lowestbid.lol — The Anti-Outbid Billboard Leaderboard',
-    description: 'Outsmart the whales without breaking the piggy bank. Pick your lucky multiple of $1.50, dodge the duplicate drama, and claim the internet’s most unhinged #1 throne.',
+    title: 'lowestbid.lol — Claim the #1 Spot on the Internet',
+    description: 'The viral pay-to-rank link leaderboard. Highest bidder takes the #1 throne, drives real traffic, and outbids the competition in real time.',
     url: 'https://lowestbid.lol',
     siteName: 'lowestbid.lol',
     locale: 'en_US',
@@ -65,8 +65,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'lowestbid.lol — The Anti-Outbid Billboard Leaderboard',
-    description: 'Outsmart the whales without breaking the piggy bank. Pick your lucky multiple of $1.50, dodge the duplicate drama, and claim the internet’s most unhinged #1 throne.',
+    title: 'lowestbid.lol — Claim the #1 Spot on the Internet',
+    description: 'The viral pay-to-rank link leaderboard. Highest bidder takes the #1 throne, drives real traffic, and outbids the competition in real time.',
+    creator: '@anni_i29',
   },
 };
 

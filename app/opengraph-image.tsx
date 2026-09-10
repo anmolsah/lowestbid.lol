@@ -235,7 +235,21 @@ export default async function Image() {
                   color: '#1C1C1C',
                 }}
               >
-                <span>🤖 AI Agents ▾</span>
+                <span style={{ marginRight: '6px' }}>🤖</span>
+                <span>AI Agents</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5C5C5C"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ marginLeft: '6px' }}
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
               </div>
 
               <div
