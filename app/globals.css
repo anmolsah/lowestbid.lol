@@ -251,6 +251,16 @@ h1, h2, h3, h4 {
   box-shadow: var(--shadow-sm);
   transition: all 180ms ease;
   user-select: none;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.hero-badge-desktop {
+  display: inline;
+}
+
+.hero-badge-mobile {
+  display: none;
 }
 
 .hero-pill-badge:hover {
@@ -718,6 +728,8 @@ h1, h2, h3, h4 {
   gap: 8px;
   position: relative;
   transition: color 150ms ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
@@ -1367,6 +1379,69 @@ h1, h2, h3, h4 {
 
 /* Mobile Adjustments */
 @media (max-width: 768px) {
+  .hero-pill-badge {
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    gap: 6px;
+    max-width: 100%;
+  }
+
+  .hero-badge-desktop {
+    display: none;
+  }
+
+  .hero-badge-mobile {
+    display: inline;
+  }
+
+  .stats-strip {
+    gap: 16px 20px;
+    margin-bottom: 36px;
+  }
+
+  .stat-label {
+    font-size: 0.74rem;
+  }
+
+  .stat-val {
+    font-size: 1.25rem;
+  }
+
+  .tabs-header {
+    margin-bottom: 18px;
+    padding-bottom: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabs-header::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabs-group {
+    gap: 16px;
+    min-width: max-content;
+  }
+
+  .tab-btn {
+    font-size: 0.92rem;
+    gap: 6px;
+    padding: 6px 0;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .tab-btn.active::after {
+    bottom: -9px;
+    height: 2.5px;
+  }
+
+  .tab-count {
+    font-size: 0.74rem;
+    padding: 1px 6px;
+  }
+
   .hero-title {
     font-size: 2.25rem;
   }

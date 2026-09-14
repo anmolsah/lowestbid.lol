@@ -432,7 +432,8 @@ export default function HomePage() {
       <section className="hero-section">
         <div className="hero-pill-badge">
           <Flame size={14} className="hero-pill-icon" />
-          <span>The lowest-cost #1 billboard on the web &middot; Starts at $1.50</span>
+          <span className="hero-badge-desktop">The lowest-cost #1 billboard on the web &middot; Starts at $1.50</span>
+          <span className="hero-badge-mobile">Lowest-cost #1 billboard &middot; From $1.50</span>
         </div>
         <h1 className="hero-title">
           Claim the <span className="hero-title-highlight">#1 Spot</span> on the Internet &mdash; for $1.50
