@@ -17,7 +17,6 @@ import {
   Share2,
   DollarSign,
   AlertCircle,
-  CheckCircle2,
   Loader2,
   MousePointerClick,
   Sun,
@@ -165,6 +164,26 @@ export default function HomePage() {
       // fallback
     }
   }, []);
+
+  // Lock background body scroll and handle Escape key when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && !submitting) {
+          setIsModalOpen(false);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [isModalOpen, submitting]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -862,12 +881,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              <div className="modal-trust-strip">
-                <div className="modal-trust-item"><CheckCircle2 size={14} /> Instant live placement on the billboard</div>
-                <div className="modal-trust-item"><CheckCircle2 size={14} /> Direct dofollow backlink & verified visitor clicks</div>
-                <div className="modal-trust-item"><CheckCircle2 size={14} /> Zero subscriptions &mdash; one-time payment, rank forever</div>
-              </div>
-
               {errorMessage && (
                 <div style={{ color: 'var(--accent-primary)', fontSize: '0.9rem', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <AlertCircle size={16} /> {errorMessage}
@@ -878,7 +891,7 @@ export default function HomePage() {
                 {submitting ? (
                   <><Loader2 size={18} className="animate-spin" /> Initializing Checkout...</>
                 ) : (
-                  <>Claim Rank for ${parseFloat(formAmount || '1.50').toFixed(2)} with Dodo <ArrowRight size={16} /></>
+                  <>Claim Rank for ${parseFloat(formAmount || '1.50').toFixed(2)} <ArrowRight size={16} /></>
                 )}
               </button>
             </form>
