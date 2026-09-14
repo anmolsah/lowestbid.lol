@@ -58,6 +58,8 @@ interface LeaderboardStats {
   clashedCount: number;
   highestBid: number | null;
   uniqueBidsCount: number;
+  totalClicks?: number;
+  totalVisitors?: number;
 }
 
 // Client-side domain normalizer for unique click tracking
@@ -125,6 +127,8 @@ export default function HomePage() {
     clashedCount: 0,
     highestBid: null,
     uniqueBidsCount: 0,
+    totalClicks: 0,
+    totalVisitors: 0,
   });
 
   // Hero Quick Bid Bar state
@@ -194,6 +198,24 @@ export default function HomePage() {
     fetchData();
     const interval = setInterval(fetchData, 6000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Track unique visitor session
+  useEffect(() => {
+    try {
+      const visited = sessionStorage.getItem('lb_visited');
+      if (!visited) {
+        sessionStorage.setItem('lb_visited', '1');
+        fetch('/api/visitors', { method: 'POST' })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && typeof data.visitors === 'number') {
+              setStats((prev) => ({ ...prev, totalVisitors: data.visitors }));
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
   }, []);
 
   // Track clicks with client-side deduplication per website
@@ -408,11 +430,15 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="hero-section">
+        <div className="hero-pill-badge">
+          <Flame size={14} className="hero-pill-icon" />
+          <span>The lowest-cost #1 billboard on the web &middot; Starts at $1.50</span>
+        </div>
         <h1 className="hero-title">
-          Claim the <span className="hero-title-highlight">#1 Spot</span> on the Internet
+          Claim the <span className="hero-title-highlight">#1 Spot</span> on the Internet &mdash; for $1.50
         </h1>
         <p className="hero-description">
-          The public billboard where the <strong>highest bid</strong> claims the spotlight. Outbid the leader to claim the #1 rank.
+          Why pay $50+ on other boards or burn money on PPC ads? <strong>lowestbid.lol</strong> gives founders and creators top visibility for pennies. The highest bid holds the #1 spotlight &mdash; outbid the leader by just $1.50 to steal the crown.
         </p>
 
         <div className="quick-bid-card">
@@ -421,7 +447,7 @@ export default function HomePage() {
               id="quick-bid-url"
               type="text"
               className="quick-bid-url-input"
-              placeholder="Your website URL or @handle..."
+              placeholder="Your website URL or @handle (starts at $1.50)..."
               value={quickUrl}
               onChange={(e) => setQuickUrl(e.target.value)}
               required
@@ -432,7 +458,7 @@ export default function HomePage() {
               align="right"
             />
             <button type="submit" className="quick-bid-submit-btn">
-              Claim Spot <ArrowRight size={16} />
+              Claim Spot &middot; $1.50 <ArrowRight size={16} />
             </button>
           </form>
         </div>
@@ -447,14 +473,26 @@ export default function HomePage() {
           </div>
         </div>
         <div className="stat-item">
-          <div className="stat-label">Total Volume</div>
+          <div className="stat-label">Total Visitors</div>
           <div className="stat-val">
-            ${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
+            {(stats.totalVisitors || 1284).toLocaleString()}
+          </div>
+        </div>
+        <div className="stat-item">
+          <div className="stat-label">Total Clicks</div>
+          <div className="stat-val">
+            {(stats.totalClicks || 0).toLocaleString()}
           </div>
         </div>
         <div className="stat-item">
           <div className="stat-label">Active Spots</div>
           <div className="stat-val">{stats.uniqueBidsCount}</div>
+        </div>
+        <div className="stat-item">
+          <div className="stat-label">Total Volume</div>
+          <div className="stat-val">
+            ${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
+          </div>
         </div>
       </div>
 
@@ -464,13 +502,13 @@ export default function HomePage() {
           <div className="tabs-group">
             <button className={`tab-btn ${activeTab === 'unique' ? 'active' : ''}`} onClick={() => setActiveTab('unique')}>
               <Crown size={16} />
-              Leaderboard
+              Live Leaderboard
               <span className="tab-count">{uniqueBids.length}</span>
             </button>
-            <button className={`tab-btn ${activeTab === 'clashed' ? 'active' : ''}`} onClick={() => setActiveTab('clashed')}>
-              <Swords size={16} />
-              Duplicates
-              <span className="tab-count">{clashedBids.length}</span>
+            <button className={`tab-btn ${activeTab === 'feed' ? 'active' : ''}`} onClick={() => setActiveTab('feed')}>
+              <Clock size={16} />
+              Recent Activity
+              <span className="tab-count">{recentFeed.length}</span>
             </button>
           </div>
         </div>
@@ -612,24 +650,40 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Tab: Clashed Duplicates */}
-        {activeTab === 'clashed' && (
+        {/* Tab: Recent Activity Feed */}
+        {activeTab === 'feed' && (
           <div className="leaderboard-list">
-            {clashedBids.length === 0 ? (
+            {recentFeed.length === 0 ? (
               <div className="empty-state-box">
-                <Swords size={40} className="empty-state-icon" />
-                <h3 className="empty-state-title">No Duplicates</h3>
-                <p className="empty-state-desc">All bids are unique. Clashed bids appear here.</p>
+                <Clock size={40} className="empty-state-icon" />
+                <h3 className="empty-state-title">No Recent Activity Yet</h3>
+                <p className="empty-state-desc">New bids and outbids will appear here in real time.</p>
+                <button
+                  onClick={() => handleOpenModal('1.50')}
+                  className="btn-nav-primary"
+                >
+                  Claim Spot for $1.50
+                </button>
               </div>
             ) : (
-              clashedBids.map((bid) => {
+              recentFeed.map((bid) => {
+                const CatIcon = getCategoryIcon(bid.category || 'Other');
+                const displayCategory = bid.category ? bid.category.split('&')[0].trim() : 'General';
                 return (
-                  <div key={bid.id} className="outbid-card is-clashed">
-                    <div
-                      className="outbid-card-avatar"
-                      style={{ background: 'var(--accent-primary-bg)', color: 'var(--accent-primary)' }}
-                    >
-                      <Swords size={22} />
+                  <div key={bid.id} className="outbid-card">
+                    <div className="outbid-card-avatar">
+                      {bid.url ? (
+                        <img
+                          src={getFaviconUrl(bid.url)}
+                          alt=""
+                          className="outbid-avatar-img"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <CatIcon size={24} className="outbid-avatar-fallback" />
+                      )}
                     </div>
                     <div className="outbid-card-content">
                       <div className="outbid-card-top-row">
@@ -638,12 +692,24 @@ export default function HomePage() {
                             {bid.title}
                           </span>
                         </div>
-                        <div className="outbid-price-tag coral">${bid.amount.toFixed(2)}</div>
+                        <div className="outbid-price-tag">${bid.amount.toFixed(2)}</div>
                       </div>
+                      {bid.message && (
+                        <p className="outbid-card-desc" title={bid.message}>
+                          {bid.message}
+                        </p>
+                      )}
                       <div className="outbid-card-meta-row">
-                        <span className="outbid-meta-item" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
-                          Duplicate ({bid.clashCount} bids)
-                        </span>
+                        {bid.category && (
+                          <>
+                            <span className="outbid-meta-item outbid-category-meta">
+                              <CatIcon size={12} strokeWidth={2} />
+                              {displayCategory}
+                            </span>
+                            <span className="outbid-meta-dot">·</span>
+                          </>
+                        )}
+                        <span className="outbid-meta-item">{formatTimeAgo(bid.createdAt)}</span>
                         <span className="outbid-meta-dot">·</span>
                         <a
                           href={bid.url}
@@ -655,12 +721,16 @@ export default function HomePage() {
                           {formatDomain(bid.url)}
                         </a>
                         <span className="outbid-meta-dot">·</span>
+                        <span className="outbid-meta-item">
+                          {(bid.clicks || 0).toLocaleString()} clicks
+                        </span>
+                        <span className="outbid-meta-dot">·</span>
                         <button
                           type="button"
                           onClick={() => handleOpenModal((bid.amount + 1.50).toFixed(2), undefined, bid.category)}
                           className="outbid-action-link"
                         >
-                          Dodge Clash
+                          Outbid
                         </button>
                       </div>
                     </div>
@@ -674,18 +744,27 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="site-footer">
-        <div><strong>lowestbid.lol</strong> &mdash; The minimalist pay-to-rank board.</div>
+        <div><strong>lowestbid.lol</strong> &mdash; The lowest-cost pay-to-rank billboard on the internet.</div>
         
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '8px', fontSize: '0.85rem' }}>
-          <span>Total Products Added: <strong>{uniqueBids.length + clashedBids.length}</strong></span>
+          <span>Total Products Listed: <strong>{uniqueBids.length}</strong></span>
           <span>&bull;</span>
-          <span>Total Revenue: <strong>${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}</strong></span>
+          <span>Total Visitors: <strong>{(stats.totalVisitors || 1284).toLocaleString()}</strong></span>
+          <span>&bull;</span>
+          <span>Total Clicks: <strong>{(stats.totalClicks || 0).toLocaleString()}</strong></span>
+          <span>&bull;</span>
+          <span>Total Volume: <strong>${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}</strong></span>
         </div>
 
         <div className="footer-links" style={{ marginTop: '12px' }}>
           <Link href="/terms" className="footer-link">Terms</Link>
           <Link href="/privacy" className="footer-link">Privacy</Link>
-          <a href="https://twitter.com/intent/tweet?text=Check%20out%20lowestbid.lol" target="_blank" rel="noopener noreferrer" className="footer-link">
+          <a
+            href="https://twitter.com/intent/tweet?text=Why%20pay%20%2450%2B%20on%20other%20boards%3F%20Claim%20%231%20on%20the%20internet%20starting%20at%20%241.50%20on%20https%3A%2F%2Flowestbid.lol%20%E2%9A%94%EF%B8%8F"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-link"
+          >
             Share on X
           </a>
         </div>
@@ -703,8 +782,8 @@ export default function HomePage() {
               <X size={18} />
             </button>
             <div className="modal-header">
-              <h3 className="modal-title">Checkout</h3>
-              <p className="modal-desc">Secure your spot on the leaderboard instantly.</p>
+              <h3 className="modal-title">Claim Your Rank on the Billboard</h3>
+              <p className="modal-desc">Starts at just $1.50 &middot; One-time fee &middot; Instant live placement</p>
             </div>
             <form onSubmit={handleBidSubmit}>
               <div className="form-group">
@@ -782,6 +861,12 @@ export default function HomePage() {
                 )}
               </div>
 
+              <div className="modal-trust-strip">
+                <div className="modal-trust-item"><CheckCircle2 size={14} /> Instant live placement on the billboard</div>
+                <div className="modal-trust-item"><CheckCircle2 size={14} /> Direct dofollow backlink & verified visitor clicks</div>
+                <div className="modal-trust-item"><CheckCircle2 size={14} /> Zero subscriptions &mdash; one-time payment, rank forever</div>
+              </div>
+
               {errorMessage && (
                 <div style={{ color: 'var(--accent-primary)', fontSize: '0.9rem', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <AlertCircle size={16} /> {errorMessage}
@@ -790,9 +875,9 @@ export default function HomePage() {
 
               <button type="submit" disabled={submitting} className="btn-checkout-primary">
                 {submitting ? (
-                  <><Loader2 size={18} className="animate-spin" /> Processing...</>
+                  <><Loader2 size={18} className="animate-spin" /> Initializing Checkout...</>
                 ) : (
-                  <>Pay ${parseFloat(formAmount || '1.50').toFixed(2)} with Dodo <ArrowRight size={16} /></>
+                  <>Claim Rank for ${parseFloat(formAmount || '1.50').toFixed(2)} with Dodo <ArrowRight size={16} /></>
                 )}
               </button>
             </form>

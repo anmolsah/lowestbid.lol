@@ -236,10 +236,37 @@ h1, h2, h3, h4 {
   margin: 0 auto;
 }
 
+.hero-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: all 180ms ease;
+  user-select: none;
+}
+
+.hero-pill-badge:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-main);
+}
+
+.hero-pill-icon {
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
 .hero-title {
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  line-height: 1.05;
-  margin-bottom: 24px;
+  font-size: clamp(2.3rem, 5.5vw, 3.8rem);
+  line-height: 1.08;
+  margin-bottom: 20px;
 }
 
 .hero-title-highlight {
@@ -629,6 +656,32 @@ h1, h2, h3, h4 {
 
 .stat-val-coral {
   color: var(--accent-primary);
+}
+
+/* Modal Trust Badges Strip */
+.modal-trust-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 18px 0;
+}
+
+.modal-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.modal-trust-item svg {
+  color: #10B981;
+  flex-shrink: 0;
 }
 
 /* Leaderboard */

@@ -16,13 +16,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://lowestbid.lol'),
-  title: 'lowestbid.lol — Claim the #1 Spot on the Internet',
-  description: 'The viral pay-to-rank link leaderboard. Highest bidder takes the #1 throne, drives real traffic, and outbids the competition in real time.',
+  title: 'lowestbid.lol — The Lowest-Cost Way to Claim #1 on the Internet',
+  description: 'Why pay $50+ on other boards or burn money on PPC ads? Claim the #1 spotlight on the internet starting at just $1.50. Outbid the leader dollar for dollar.',
   keywords: [
     'lowestbid',
     'lowestbid lol',
+    'lowest cost billboard',
     'outbid alternative',
     'pay to rank leaderboard',
+    'affordable startup promotion',
     'link billboard',
     'indie hacker promotion',
     'viral billboard game',
@@ -56,8 +58,8 @@ export const metadata: Metadata = {
     apple: '/monogram.png',
   },
   openGraph: {
-    title: 'lowestbid.lol — Claim the #1 Spot on the Internet',
-    description: 'The viral pay-to-rank link leaderboard. Highest bidder takes the #1 throne, drives real traffic, and outbids the competition in real time.',
+    title: 'lowestbid.lol — The Lowest-Cost Way to Claim #1 on the Internet',
+    description: 'Why pay $50+ on other boards or burn money on PPC ads? Claim the #1 spotlight on the internet starting at just $1.50. Outbid the leader dollar for dollar.',
     url: 'https://lowestbid.lol',
     siteName: 'lowestbid.lol',
     locale: 'en_US',
@@ -65,8 +67,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'lowestbid.lol — Claim the #1 Spot on the Internet',
-    description: 'The viral pay-to-rank link leaderboard. Highest bidder takes the #1 throne, drives real traffic, and outbids the competition in real time.',
+    title: 'lowestbid.lol — The Lowest-Cost Way to Claim #1 on the Internet',
+    description: 'Why pay $50+ on other boards or burn money on PPC ads? Claim the #1 spotlight on the internet starting at just $1.50. Outbid the leader dollar for dollar.',
     creator: '@anni_i29',
   },
 };
@@ -79,7 +81,7 @@ const jsonLdData = {
       '@id': 'https://lowestbid.lol/#website',
       'url': 'https://lowestbid.lol',
       'name': 'lowestbid.lol',
-      'description': 'Outsmart the whales without breaking the piggy bank. The pay-to-rank billboard where the lowest unique bid claims the #1 spotlight.',
+      'description': 'The lowest-cost pay-to-rank billboard on the internet. Claim the #1 spotlight starting at just $1.50.',
       'inLanguage': 'en-US',
       'publisher': {
         '@type': 'Organization',

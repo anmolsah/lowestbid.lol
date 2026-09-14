@@ -26,6 +26,8 @@ export interface LeaderboardStats {
   clashedCount: number;
   highestBid: number | null;
   uniqueBidsCount: number;
+  totalClicks: number;
+  totalVisitors: number;
 }
 
 // Global in-memory cache for serverless execution context
@@ -40,6 +42,53 @@ const DATA_DIR = isVercel
   : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'bids.json');
 const SEED_FILE = path.join(process.cwd(), 'data', 'bids.json');
+const STATS_FILE = path.join(DATA_DIR, 'stats.json');
+const SEED_STATS_FILE = path.join(process.cwd(), 'data', 'stats.json');
+
+const globalForStats = globalThis as unknown as {
+  visitorsCount?: number;
+};
+
+export function getVisitorCount(): number {
+  if (typeof globalForStats.visitorsCount === 'number') {
+    return globalForStats.visitorsCount;
+  }
+  ensureDataFile();
+  try {
+    if (fs.existsSync(STATS_FILE)) {
+      const raw = fs.readFileSync(STATS_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.visitors === 'number') {
+        globalForStats.visitorsCount = parsed.visitors;
+        return parsed.visitors;
+      }
+    } else if (fs.existsSync(SEED_STATS_FILE)) {
+      const raw = fs.readFileSync(SEED_STATS_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.visitors === 'number') {
+        globalForStats.visitorsCount = parsed.visitors;
+        return parsed.visitors;
+      }
+    }
+  } catch (err) {
+    console.warn('Error reading stats file:', err);
+  }
+  globalForStats.visitorsCount = 1284;
+  return 1284;
+}
+
+export function incrementVisitorCount(): number {
+  const current = getVisitorCount();
+  const next = current + 1;
+  globalForStats.visitorsCount = next;
+  ensureDataFile();
+  try {
+    fs.writeFileSync(STATS_FILE, JSON.stringify({ visitors: next }, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('Could not save visitor count to file:', err);
+  }
+  return next;
+}
 
 // Convert between TypeScript Bid interface and Supabase DB Row
 function toDbRow(bid: Bid) {
@@ -437,6 +486,8 @@ export function computeLeaderboard(allBids: Bid[]) {
   const totalBids = verified.length;
   const currentLowestUniqueBid = reigningChampion ? reigningChampion.amount : null;
   const highestBid = highRollers.length > 0 ? highRollers[0].amount : null;
+  const totalClicks = activeWebsiteBids.reduce((sum, b) => sum + (b.clicks || 0), 0);
+  const totalVisitors = getVisitorCount();
 
   const stats: LeaderboardStats = {
     totalVolume: Math.round(totalVolume * 100) / 100,
@@ -445,6 +496,8 @@ export function computeLeaderboard(allBids: Bid[]) {
     clashedCount: clashedBids.length,
     highestBid,
     uniqueBidsCount: rankedBids.length,
+    totalClicks,
+    totalVisitors,
   };
 
   return {

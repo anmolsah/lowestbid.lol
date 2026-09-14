@@ -103,8 +103,8 @@ export default function TermsPage() {
               <Crown size={20} style={{ color: 'var(--accent-primary)' }} /> 1. What is lowestbid.lol?
             </h3>
             <p>
-              <strong>lowestbid.lol</strong> is a public, competitive pay-to-rank advertising billboard and link leaderboard. 
-              Makers, founders, creators, and brands place monetary bids to feature their website, product, or tool in the prestigious 
+              <strong>lowestbid.lol</strong> is the internet&apos;s lowest-cost competitive pay-to-rank advertising billboard. 
+              Makers, founders, creators, and brands place micro-bids starting at just $1.50 to feature their website, product, or tool in the prestigious 
               <strong>#1 Crown Spotlight</strong> and throughout the public category rankings.
             </p>
             <p>

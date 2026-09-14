@@ -188,7 +188,7 @@ export default async function Image() {
               marginBottom: '20px',
             }}
           >
-            <span>The viral pay-to-rank leaderboard. Highest bidder takes the throne and drives real clicks.</span>
+            <span>The lowest-cost pay-to-rank billboard. Claim #1 starting at just $1.50.</span>
           </div>
 
           {/* Quick Bid Search Bar Mock (Exact Site UI) */}
