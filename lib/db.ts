@@ -77,6 +77,36 @@ export function getVisitorCount(): number {
   return 1284;
 }
 
+export async function getVisitorCountAsync(): Promise<number> {
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('site_stats')
+          .select('value')
+          .eq('key', 'visitors')
+          .maybeSingle();
+
+        if (!error && data && typeof data.value === 'number') {
+          globalForStats.visitorsCount = data.value;
+          try {
+            ensureDataFile();
+            fs.writeFileSync(STATS_FILE, JSON.stringify({ visitors: data.value }, null, 2), 'utf8');
+          } catch {}
+          return data.value;
+        } else if (error && error.code !== 'PGRST116') {
+          console.warn('Supabase site_stats read notice:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase site_stats connection notice:', err);
+      }
+    }
+  }
+
+  return getVisitorCount();
+}
+
 export function incrementVisitorCount(): number {
   const current = getVisitorCount();
   const next = current + 1;
@@ -88,6 +118,62 @@ export function incrementVisitorCount(): number {
     console.warn('Could not save visitor count to file:', err);
   }
   return next;
+}
+
+export async function incrementVisitorCountAsync(): Promise<number> {
+  // Always update local memory and file immediately as fallback
+  const fallbackNext = incrementVisitorCount();
+
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        // Attempt 1: Call atomic Postgres function
+        const { data: rpcVal, error: rpcErr } = await supabase.rpc('increment_stat', {
+          stat_key: 'visitors',
+          amount: 1,
+        });
+
+        if (!rpcErr && typeof rpcVal === 'number') {
+          globalForStats.visitorsCount = rpcVal;
+          try {
+            ensureDataFile();
+            fs.writeFileSync(STATS_FILE, JSON.stringify({ visitors: rpcVal }, null, 2), 'utf8');
+          } catch {}
+          return rpcVal;
+        }
+
+        // Attempt 2: Fallback upsert if RPC is not defined
+        const { data: currentData } = await supabase
+          .from('site_stats')
+          .select('value')
+          .eq('key', 'visitors')
+          .maybeSingle();
+
+        const currentVal = (currentData && typeof currentData.value === 'number')
+          ? currentData.value
+          : fallbackNext - 1;
+        const nextVal = currentVal + 1;
+
+        const { error: upsertErr } = await supabase
+          .from('site_stats')
+          .upsert({ key: 'visitors', value: nextVal, updated_at: new Date().toISOString() });
+
+        if (!upsertErr) {
+          globalForStats.visitorsCount = nextVal;
+          try {
+            ensureDataFile();
+            fs.writeFileSync(STATS_FILE, JSON.stringify({ visitors: nextVal }, null, 2), 'utf8');
+          } catch {}
+          return nextVal;
+        }
+      } catch (err) {
+        console.warn('Supabase site_stats increment warning, using fallback:', err);
+      }
+    }
+  }
+
+  return fallbackNext;
 }
 
 // Convert between TypeScript Bid interface and Supabase DB Row
@@ -391,7 +477,7 @@ export function normalizeWebsiteKey(url: string): string {
 }
 
 // Compute leaderboard logic from any list of bids
-export function computeLeaderboard(allBids: Bid[]) {
+export function computeLeaderboard(allBids: Bid[], visitorCountOverride?: number) {
   const verified = allBids.filter(b => b.status === 'verified');
 
   // Group verified bids by canonical website key.
@@ -487,7 +573,9 @@ export function computeLeaderboard(allBids: Bid[]) {
   const currentLowestUniqueBid = reigningChampion ? reigningChampion.amount : null;
   const highestBid = highRollers.length > 0 ? highRollers[0].amount : null;
   const totalClicks = activeWebsiteBids.reduce((sum, b) => sum + (b.clicks || 0), 0);
-  const totalVisitors = getVisitorCount();
+  const totalVisitors = typeof visitorCountOverride === 'number'
+    ? visitorCountOverride
+    : getVisitorCount();
 
   const stats: LeaderboardStats = {
     totalVolume: Math.round(totalVolume * 100) / 100,
@@ -518,6 +606,9 @@ export function getLeaderboardData() {
 
 // Asynchronous leaderboard computation (reads from Supabase if configured)
 export async function getLeaderboardDataAsync() {
-  const allBids = await getAllBidsAsync();
-  return computeLeaderboard(allBids);
+  const [allBids, visitors] = await Promise.all([
+    getAllBidsAsync(),
+    getVisitorCountAsync(),
+  ]);
+  return computeLeaderboard(allBids, visitors);
 }
