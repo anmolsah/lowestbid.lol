@@ -238,14 +238,16 @@ export default function HomePage() {
   }, []);
 
   // Track clicks with client-side deduplication per website
-  const handleTrackClick = (bidId: string, url: string, e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleTrackClick = (bidId: string, url: string, e?: React.MouseEvent<HTMLAnchorElement>) => {
     const domainKey = `clicked_${normalizeDomain(url)}`;
     
     // Add UTM source for value to bidders
     const targetUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
     if (!url.startsWith('@')) {
       targetUrl.searchParams.set('utm_source', 'lowestbid.lol');
-      e.currentTarget.href = targetUrl.toString();
+      if (e && e.currentTarget && 'href' in e.currentTarget) {
+        e.currentTarget.href = targetUrl.toString();
+      }
     }
 
     try {
@@ -274,6 +276,21 @@ export default function HomePage() {
     } catch (err) {
       // Ignore localStorage errors (e.g. private browsing)
     }
+  };
+
+  const handleCardClick = (bid: BidItem, e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a')) {
+      return; // Let the button or link handle it
+    }
+    
+    const targetUrl = new URL(bid.url.startsWith('http') ? bid.url : `https://${bid.url}`);
+    if (!bid.url.startsWith('@')) {
+      targetUrl.searchParams.set('utm_source', 'lowestbid.lol');
+    }
+    
+    handleTrackClick(bid.id, bid.url);
+    window.open(targetUrl.toString(), '_blank');
   };
 
   const handleFetchMeta = async (customUrl?: string) => {
@@ -489,29 +506,29 @@ export default function HomePage() {
         <div className="stat-item">
           <div className="stat-label">Top Bid</div>
           <div className="stat-val stat-val-coral">
-            ${stats.highestBid ? stats.highestBid.toFixed(2) : (reigningChampion ? reigningChampion.amount.toFixed(2) : (uniqueBids[0]?.amount?.toFixed(2) || '1.50'))}
+            {loading ? '...' : `$${stats.highestBid ? stats.highestBid.toFixed(2) : (reigningChampion ? reigningChampion.amount.toFixed(2) : (uniqueBids[0]?.amount?.toFixed(2) || '1.50'))}`}
           </div>
         </div>
         <div className="stat-item">
           <div className="stat-label">Total Visitors</div>
           <div className="stat-val">
-            {(stats.totalVisitors || 1284).toLocaleString()}
+            {loading ? '...' : (stats.totalVisitors || 0).toLocaleString()}
           </div>
         </div>
         <div className="stat-item">
           <div className="stat-label">Total Clicks</div>
           <div className="stat-val">
-            {(stats.totalClicks || 0).toLocaleString()}
+            {loading ? '...' : (stats.totalClicks || 0).toLocaleString()}
           </div>
         </div>
         <div className="stat-item">
           <div className="stat-label">Active Spots</div>
-          <div className="stat-val">{stats.uniqueBidsCount}</div>
+          <div className="stat-val">{loading ? '...' : stats.uniqueBidsCount}</div>
         </div>
         <div className="stat-item">
           <div className="stat-label">Total Volume</div>
           <div className="stat-val">
-            ${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
+            {loading ? '...' : `$${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}`}
           </div>
         </div>
       </div>
@@ -588,7 +605,12 @@ export default function HomePage() {
                 const CatIcon = getCategoryIcon(bid.category || 'Other');
                 const displayCategory = bid.category ? bid.category.split('&')[0].trim() : 'General';
                 return (
-                  <div key={bid.id} className={`outbid-card ${isWinner ? 'is-winner' : ''}`}>
+                  <div 
+                    key={bid.id} 
+                    className={`outbid-card ${isWinner ? 'is-winner' : ''}`}
+                    onClick={(e) => handleCardClick(bid, e)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     {/* Left Icon Squircle */}
                     <div className="outbid-card-avatar">
                       {bid.url ? (
@@ -690,7 +712,12 @@ export default function HomePage() {
                 const CatIcon = getCategoryIcon(bid.category || 'Other');
                 const displayCategory = bid.category ? bid.category.split('&')[0].trim() : 'General';
                 return (
-                  <div key={bid.id} className="outbid-card">
+                  <div 
+                    key={bid.id} 
+                    className="outbid-card"
+                    onClick={(e) => handleCardClick(bid, e)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="outbid-card-avatar">
                       {bid.url ? (
                         <img
@@ -767,13 +794,13 @@ export default function HomePage() {
         <div><strong>lowestbid.lol</strong> &mdash; The lowest-cost pay-to-rank billboard on the internet.</div>
         
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '8px', fontSize: '0.85rem' }}>
-          <span>Total Products Listed: <strong>{uniqueBids.length}</strong></span>
+          <span>Total Products Listed: <strong>{loading ? '...' : uniqueBids.length}</strong></span>
           <span>&bull;</span>
-          <span>Total Visitors: <strong>{(stats.totalVisitors || 1284).toLocaleString()}</strong></span>
+          <span>Total Visitors: <strong>{loading ? '...' : (stats.totalVisitors || 0).toLocaleString()}</strong></span>
           <span>&bull;</span>
-          <span>Total Clicks: <strong>{(stats.totalClicks || 0).toLocaleString()}</strong></span>
+          <span>Total Clicks: <strong>{loading ? '...' : (stats.totalClicks || 0).toLocaleString()}</strong></span>
           <span>&bull;</span>
-          <span>Total Volume: <strong>${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}</strong></span>
+          <span>Total Volume: <strong>{loading ? '...' : `$${stats.totalVolume ? stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}`}</strong></span>
         </div>
 
         <div className="footer-links" style={{ marginTop: '12px' }}>
