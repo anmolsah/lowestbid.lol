@@ -78,3 +78,17 @@ begin
   return new_val;
 end;
 $$;
+
+-- Function for atomic bid click increment (prevents race conditions)
+create or replace function increment_bid_clicks(bid_id text, amount int default 1)
+returns integer
+language plpgsql
+security definer
+as $$
+declare
+  new_val integer;
+begin
+  update bids set clicks = coalesce(clicks, 0) + amount where id = bid_id returning clicks into new_val;
+  return coalesce(new_val, 0);
+end;
+$$;

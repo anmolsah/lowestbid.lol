@@ -390,7 +390,7 @@ export function incrementBidClicks(bidId: string): number {
   return 0;
 }
 
-// Increment click count for a bid in Supabase (async)
+// Increment click count for a bid in Supabase (async, atomic)
 export async function incrementBidClicksAsync(bidId: string): Promise<number> {
   const newClicks = incrementBidClicks(bidId);
 
@@ -398,7 +398,21 @@ export async function incrementBidClicksAsync(bidId: string): Promise<number> {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        await supabase.from('bids').update({ clicks: newClicks }).eq('id', bidId);
+        // Use atomic RPC to prevent race conditions on concurrent clicks
+        const { data: rpcVal, error: rpcErr } = await supabase.rpc('increment_bid_clicks', {
+          bid_id: bidId,
+          amount: 1,
+        });
+
+        if (!rpcErr && typeof rpcVal === 'number') {
+          return rpcVal;
+        }
+
+        // Fallback to absolute set if RPC is not available
+        if (rpcErr) {
+          console.warn('increment_bid_clicks RPC not available, falling back to absolute update:', rpcErr.message);
+          await supabase.from('bids').update({ clicks: newClicks }).eq('id', bidId);
+        }
       } catch (err) {
         console.error('Failed to update clicks in Supabase:', err);
       }
